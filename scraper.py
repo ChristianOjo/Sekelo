@@ -104,14 +104,23 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 def select_branch(page, search_term):
     try:
-        page.click("text=Change Store", timeout=5000)
+        # Dismiss any open modal first
+        try:
+            page.click(".modal .close, button[data-dismiss='modal']", timeout=2000)
+            time.sleep(1)
+        except:
+            pass
+
+        # Click Change Store
+        page.click(".store-change__link-text", timeout=5000)
         time.sleep(1)
-        page.fill(
-            "input[placeholder*='address'], input[placeholder*='store'], input[type='search']",
-            search_term
-        )
+
+        # Fill search
+        page.fill("#searchStore, input[placeholder*='store'], input[placeholder*='address']", search_term)
         time.sleep(2)
-        page.click(f"text={search_term}", timeout=5000)
+
+        # Click first result
+        page.click(f".store-list .store-item:first-child, text={search_term}", timeout=5000)
         time.sleep(2)
         return True
     except Exception as e:
