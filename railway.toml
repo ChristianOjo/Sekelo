@@ -1,2 +1,2 @@
 [deploy]
-startCommand = "playwright install chromium && python scraper.py"
+startCommand = "python scraper.py"
