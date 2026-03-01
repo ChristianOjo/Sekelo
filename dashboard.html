@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sekelo — Construction Price Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ── RESET & BASE ────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0a0a;
+    --bg-card:   #111111;
+    --bg-line:   #161616;
+    --border:    #222222;
+    --border-hi: #2e2e2e;
+    --text-hi:   #f0f0f0;
+    --text-mid:  #888888;
+    --text-lo:   #444444;
+    --up:        #22c55e;
+    --down:      #ef4444;
+    --warn:      #f59e0b;
+    --accent:    #ffffff;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text-hi);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── LAYOUT ──────────────────────────────────────────────────── */
+  .shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── HEADER ──────────────────────────────────────────────────── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+  }
+
+  .header-left .wordmark {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin-bottom: 6px;
+  }
+
+  .header-left .title {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text-hi);
+  }
+
+  .header-right {
+    text-align: right;
+    font-size: 11px;
+    color: var(--text-mid);
+    letter-spacing: 0.05em;
+  }
+
+  .header-right .sync-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--up);
+    margin-right: 6px;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* ── VOLATILITY SCORE ────────────────────────────────────────── */
+  .score-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 1px;
+  }
+
+  .score-cell {
+    background: var(--bg-card);
+    padding: 32px 36px;
+  }
+
+  .score-cell .label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin-bottom: 16px;
+  }
+
+  .ecvs-number {
+    font-size: 72px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text-hi);
+  }
+
+  .ecvs-status {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid currentColor;
+  }
+
+  .ecvs-status.high   { color: var(--down); }
+  .ecvs-status.medium { color: var(--warn); }
+  .ecvs-status.low    { color: var(--up);   }
+
+  .gap-cell {
+    background: var(--bg-card);
+    padding: 32px 36px;
+  }
+
+  .gap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .gap-row:last-child { border-bottom: none; }
+
+  .gap-row .item-name {
+    font-size: 11px;
+    color: var(--text-mid);
+    font-family: var(--sans);
+    font-weight: 400;
+  }
+
+  .gap-row .official { color: var(--text-lo); }
+  .gap-row .live     { color: var(--text-hi); font-weight: 500; }
+
+  .gap-row .gap-pct {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+  }
+
+  .gap-pct.danger  { color: var(--down); }
+  .gap-pct.warning { color: var(--warn); }
+  .gap-pct.safe    { color: var(--up);   }
+
+  /* ── WARNING BANNER ──────────────────────────────────────────── */
+  .warning-banner {
+    background: #1a0a00;
+    border: 1px solid #3d1f00;
+    border-left: 3px solid var(--warn);
+    padding: 14px 20px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--warn);
+    margin-bottom: 1px;
+    display: none;
+  }
+
+  .warning-banner.visible { display: block; }
+
+  .warning-banner strong {
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ── COMMODITY TABLE ─────────────────────────────────────────── */
+  .table-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    margin-bottom: 1px;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-lo);
+  }
+
+  .table-header span:not(:first-child),
+  .table-row .cell:not(:first-child) {
+    text-align: right;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--bg-line);
+    align-items: center;
+    transition: background 0.15s;
+  }
+
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover      { background: var(--bg-line); }
+
+  .table-row .cell { font-size: 13px; }
+
+  .material-name {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-hi);
+  }
+
+  .material-sub {
+    font-size: 10px;
+    color: var(--text-lo);
+    margin-top: 2px;
+    font-family: var(--sans);
+  }
+
+  .price-zar { color: var(--text-mid); }
+  .price-szl { color: var(--text-hi); font-weight: 500; }
+
+  .delta {
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+  }
+
+  .delta.up   { color: var(--up);   }
+  .delta.down { color: var(--down); }
+  .delta.flat { color: var(--text-lo); }
+
+  .delta-arrow { font-size: 9px; }
+
+  .no-data { color: var(--text-lo); font-size: 11px; }
+
+  /* ── BRANCH SELECTOR ─────────────────────────────────────────── */
+  .branch-tabs {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .branch-tab {
+    flex: 1;
+    padding: 10px 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-lo);
+    background: var(--bg);
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .branch-tab.active {
+    background: var(--bg-card);
+    color: var(--text-hi);
+  }
+
+  .branch-tab:hover:not(.active) { color: var(--text-mid); }
+
+  /* ── REGIONAL PARITY ─────────────────────────────────────────── */
+  .parity-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 1px;
+  }
+
+  .parity-cell {
+    background: var(--bg-card);
+    padding: 28px 36px;
+  }
+
+  .parity-cell .label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin-bottom: 20px;
+  }
+
+  .parity-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .parity-row:last-child { border-bottom: none; }
+  .parity-row .mat  { color: var(--text-mid); font-family: var(--sans); }
+  .parity-row .val  { font-weight: 500; }
+  .parity-row .premium { color: var(--warn); font-size: 11px; margin-left: 10px; }
+
+  /* ── FOOTER ──────────────────────────────────────────────────── */
+  .footer {
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-lo);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── LOADING STATE ───────────────────────────────────────────── */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 100;
+  }
+
+  .loading-overlay.hidden { display: none; }
+
+  .loading-text {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    animation: flicker 1.2s ease-in-out infinite;
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  /* ── SECTION LABEL ───────────────────────────────────────────── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-lo);
+    margin-bottom: 4px;
+    margin-top: 32px;
+    padding-left: 2px;
+  }
+
+  .section-label:first-child { margin-top: 0; }
+
+</style>
+</head>
+<body>
+
+<!-- Loading state -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div style="font-size:11px;letter-spacing:.18em;color:#444;text-transform:uppercase">BUILDPRICE 2.0</div>
+  <div class="loading-text">Syncing market data…</div>
+</div>
+
+<div class="shell">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="wordmark">Sekelo · Construction Price Intelligence</div>
+      <div class="title">Eswatini Construction Volatility Dashboard</div>
+    </div>
+    <div class="header-right">
+      <div><span class="sync-dot"></span>Live Data</div>
+      <div id="lastUpdated" style="margin-top:6px">—</div>
+      <div id="sourceLabel" style="margin-top:4px;font-size:10px">—</div>
+    </div>
+  </header>
+
+  <!-- WARNING BANNER -->
+  <div class="warning-banner" id="warningBanner">
+    <strong>⚠ Volatility Alert:</strong>&nbsp;
+    Market movement has exceeded 3% this week.
+    Tenders based on current monthly price lists are at <strong>High Risk</strong>.
+  </div>
+
+  <!-- SECTION: VOLATILITY SCORE + GAP -->
+  <div class="section-label">Market Pulse</div>
+  <div class="score-block">
+
+    <!-- ECVS Score -->
+    <div class="score-cell">
+      <div class="label">Eswatini Construction Volatility Score</div>
+      <div class="ecvs-number" id="ecvsNumber">—</div>
+      <div>
+        <span class="ecvs-status" id="ecvsStatus">—</span>
+      </div>
+      <div style="margin-top:20px;font-size:11px;color:var(--text-lo);line-height:1.7">
+        Avg. price movement across<br>Big 5 materials · last 7 days
+      </div>
+    </div>
+
+    <!-- Official vs Live Gap -->
+    <div class="gap-cell">
+      <div class="label">Official Price List vs. Live Shelf Price</div>
+      <div id="gapRows">
+        <!-- Populated by JS -->
+        <div class="gap-row">
+          <span class="item-name">Awaiting scraper data</span>
+          <span class="official">—</span>
+          <span class="live">—</span>
+          <span class="gap-pct">—</span>
+        </div>
+      </div>
+      <div style="margin-top:16px;font-size:10px;color:var(--text-lo)">
+        Gap ≥5% = tenders signed today are pre-deficit
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SECTION: BIG 5 COMMODITIES -->
+  <div class="section-label" style="margin-top:32px">Big 5 Commodities</div>
+
+  <!-- Branch Tabs -->
+  <div class="branch-tabs">
+    <button class="branch-tab active" onclick="showBranch(0, this)">Southgate — Joburg</button>
+    <button class="branch-tab" onclick="showBranch(1, this)">Nelspruit Plaza</button>
+    <button class="branch-tab" onclick="showBranch('avg', this)">SA Corridor Avg</button>
+  </div>
+
+  <div class="table-block">
+    <div class="table-header">
+      <span>Material</span>
+      <span>ZAR (SA)</span>
+      <span>SZL (Landed)</span>
+      <span>24h Δ</span>
+      <span>30d Δ</span>
+      <span>Border %</span>
+    </div>
+    <div id="commodityRows">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- SECTION: REGIONAL PARITY -->
+  <div class="section-label" style="margin-top:32px">Regional Parity</div>
+  <div class="parity-block">
+    <div class="parity-cell">
+      <div class="label">SA Corridor Price (ZAR)</div>
+      <div id="parityZAR">
+        <div style="color:var(--text-lo);font-size:11px">Awaiting data</div>
+      </div>
+    </div>
+    <div class="parity-cell">
+      <div class="label">Eswatini Landed Price (SZL) + Border Premium</div>
+      <div id="paritySZL">
+        <div style="color:var(--text-lo);font-size:11px">Awaiting data</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <span id="footerSource">Data synced via Sekelo Aggregator (SA/SZ Hub)</span>
+    <span>CIC Internal Use · sekelo.vercel.app</span>
+  </footer>
+
+</div><!-- /shell -->
+
+<script>
+/* ── DEMO/FALLBACK DATA ──────────────────────────────────────────────────
+   Used when prices.json has not been generated yet by the scraper.
+   Replace these with real values once the scraper runs.
+─────────────────────────────────────────────────────────────────────── */
+const DEMO_DATA = {
+  last_updated: "Demo Mode — Run scraper.py to populate live data",
+  border_premium: 0.20,
+  zar_to_szl: 1.0,
+  source: "Cashbuild SA — Public Storefront (Demo)",
+  branches: [
+    {
+      branch: "Southgate | Cashbuild",
+      city: "Joburg",
+      products: [
+        { material_id: "cement", material: "PPC Cement 50kg",         price_zar: 139.95, price_szl: 167.94, delta_24h: 0,    delta_30d: 2.1  },
+        { material_id: "rebar",  material: "Steel Rebar Y12",          price_zar: 285.00, price_szl: 342.00, delta_24h: 1.2,  delta_30d: 4.3  },
+        { material_id: "diesel", material: "Diesel 50ppm (per litre)", price_zar: 21.40,  price_szl: 25.68,  delta_24h: -0.5, delta_30d: -1.2 },
+        { material_id: "timber", material: "Structural Timber S5",     price_zar: 420.00, price_szl: 504.00, delta_24h: 0,    delta_30d: 5.8  },
+        { material_id: "bricks", material: "Stock Bricks (per 1000)",  price_zar: 1850.00,price_szl: 2220.00,delta_24h: 0,    delta_30d: 3.2  },
+      ]
+    },
+    {
+      branch: "Nelspruit Plaza | Cashbuild",
+      city: "Nelspruit",
+      products: [
+        { material_id: "cement", material: "PPC Cement 50kg",         price_zar: 145.00, price_szl: 174.00, delta_24h: 0,    delta_30d: 2.8  },
+        { material_id: "rebar",  material: "Steel Rebar Y12",          price_zar: 292.00, price_szl: 350.40, delta_24h: 1.2,  delta_30d: 4.8  },
+        { material_id: "diesel", material: "Diesel 50ppm (per litre)", price_zar: 21.65,  price_szl: 25.98,  delta_24h: -0.5, delta_30d: -0.9 },
+        { material_id: "timber", material: "Structural Timber S5",     price_zar: 435.00, price_szl: 522.00, delta_24h: 0,    delta_30d: 6.1  },
+        { material_id: "bricks", material: "Stock Bricks (per 1000)",  price_zar: 1920.00,price_szl: 2304.00,delta_24h: 0,    delta_30d: 3.7  },
+      ]
+    }
+  ]
+};
+
+/* Official monthly price list (government tender base) */
+const OFFICIAL_PRICES = {
+  cement: { label: "PPC Cement 50kg",   official_zar: 130.00 },
+  rebar:  { label: "Steel Rebar Y12",    official_zar: 265.00 },
+  diesel: { label: "Diesel 50ppm",       official_zar: 20.50  },
+  timber: { label: "Structural Timber",  official_zar: 390.00 },
+  bricks: { label: "Stock Bricks /1000", official_zar: 1750.00},
+};
+
+/* ── STATE ────────────────────────────────────────────────────── */
+let DATA         = null;
+let activeBranch = 0;
+
+/* ── HELPERS ──────────────────────────────────────────────────── */
+function fmt(n, currency = "R", decimals = 2) {
+  if (n == null) return '<span class="no-data">—</span>';
+  return `${currency}${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
+function deltaHtml(pct) {
+  if (pct == null) return '<span class="delta flat">—</span>';
+  if (pct === 0)   return '<span class="delta flat">0.00%</span>';
+  const cls   = pct > 0 ? "up" : "down";
+  const arrow = pct > 0 ? "▲" : "▼";
+  return `<span class="delta ${cls}"><span class="delta-arrow">${arrow}</span>${Math.abs(pct).toFixed(2)}%</span>`;
+}
+
+/* ── ECVS CALCULATION ─────────────────────────────────────────── */
+function calcECVS(branches) {
+  const allDeltas = [];
+  branches.forEach(b => {
+    b.products.forEach(p => {
+      if (p.delta_30d != null) allDeltas.push(Math.abs(p.delta_30d));
+    });
+  });
+  if (!allDeltas.length) return null;
+  const avg = allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length;
+  return Math.min(100, Math.round(avg * 10));
+}
+
+/* ── RENDER ───────────────────────────────────────────────────── */
+function render(data) {
+  document.getElementById("loadingOverlay").classList.add("hidden");
+  document.getElementById("lastUpdated").textContent   = data.last_updated || "—";
+  document.getElementById("sourceLabel").textContent   = data.source        || "—";
+  document.getElementById("footerSource").textContent  =
+    `Data synced via Buildprice 2.0 Aggregator (SA/SZ Hub) · ${data.source}`;
+
+  /* ECVS */
+  const score = calcECVS(data.branches);
+  document.getElementById("ecvsNumber").textContent = score != null ? score : "—";
+  const statusEl = document.getElementById("ecvsStatus");
+  if (score != null) {
+    if (score >= 60) {
+      statusEl.textContent = "High Volatility";
+      statusEl.className   = "ecvs-status high";
+      document.getElementById("warningBanner").classList.add("visible");
+    } else if (score >= 30) {
+      statusEl.textContent = "Moderate";
+      statusEl.className   = "ecvs-status medium";
+    } else {
+      statusEl.textContent = "Low Volatility";
+      statusEl.className   = "ecvs-status low";
+    }
+  }
+
+  /* Official vs Live Gap */
+  const gapContainer = document.getElementById("gapRows");
+  gapContainer.innerHTML = "";
+  const branch0 = data.branches[0];
+  if (branch0) {
+    branch0.products.forEach(p => {
+      const official = OFFICIAL_PRICES[p.material_id];
+      if (!official || p.price_zar == null) return;
+      const gap = ((p.price_zar - official.official_zar) / official.official_zar * 100).toFixed(1);
+      const gapClass = gap >= 5 ? "danger" : gap >= 2 ? "warning" : "safe";
+      const row = document.createElement("div");
+      row.className = "gap-row";
+      row.innerHTML = `
+        <span class="item-name">${official.label}</span>
+        <span class="official">${fmt(official.official_zar)}</span>
+        <span class="live">${fmt(p.price_zar)}</span>
+        <span class="gap-pct ${gapClass}">+${gap}%</span>
+      `;
+      gapContainer.appendChild(row);
+    });
+  }
+
+  /* Commodity table */
+  renderBranchTable(activeBranch, data);
+
+  /* Parity */
+  renderParity(data);
+}
+
+function renderBranchTable(branchIndex, data) {
+  const rows = document.getElementById("commodityRows");
+  rows.innerHTML = "";
+  const premium = data.border_premium * 100;
+
+  let products;
+
+  if (branchIndex === "avg") {
+    /* SA Corridor Average */
+    const ids = data.branches[0]?.products.map(p => p.material_id) || [];
+    products = ids.map(id => {
+      const allBranch = data.branches.map(b => b.products.find(p => p.material_id === id)).filter(Boolean);
+      const avgZAR    = allBranch.reduce((s, p) => s + (p.price_zar || 0), 0) / allBranch.length;
+      const avgSZL    = allBranch.reduce((s, p) => s + (p.price_szl || 0), 0) / allBranch.length;
+      const avg24h    = allBranch.every(p => p.delta_24h != null)
+        ? allBranch.reduce((s, p) => s + p.delta_24h, 0) / allBranch.length : null;
+      const avg30d    = allBranch.every(p => p.delta_30d != null)
+        ? allBranch.reduce((s, p) => s + p.delta_30d, 0) / allBranch.length : null;
+      return { ...allBranch[0], price_zar: avgZAR, price_szl: avgSZL, delta_24h: avg24h ? +avg24h.toFixed(2) : null, delta_30d: avg30d ? +avg30d.toFixed(2) : null };
+    });
+  } else {
+    products = data.branches[branchIndex]?.products || [];
+  }
+
+  products.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "table-row";
+    row.innerHTML = `
+      <div>
+        <div class="material-name">${p.material}</div>
+        <div class="material-sub">${data.branches[branchIndex === "avg" ? 0 : branchIndex]?.branch || "SA Corridor Avg"}</div>
+      </div>
+      <div class="cell price-zar">${fmt(p.price_zar)}</div>
+      <div class="cell price-szl">${fmt(p.price_szl, "E")}</div>
+      <div class="cell">${deltaHtml(p.delta_24h)}</div>
+      <div class="cell">${deltaHtml(p.delta_30d ?? null)}</div>
+      <div class="cell" style="text-align:right;color:var(--warn);font-size:11px">+${premium.toFixed(0)}%</div>
+    `;
+    rows.appendChild(row);
+  });
+}
+
+function renderParity(data) {
+  const zarEl = document.getElementById("parityZAR");
+  const szlEl = document.getElementById("paritySZL");
+  zarEl.innerHTML = "";
+  szlEl.innerHTML = "";
+
+  /* Avg across branches */
+  const ids = data.branches[0]?.products.map(p => p.material_id) || [];
+  ids.forEach(id => {
+    const allBranch = data.branches.map(b => b.products.find(p => p.material_id === id)).filter(Boolean);
+    const avgZAR    = allBranch.reduce((s, p) => s + (p.price_zar || 0), 0) / allBranch.length;
+    const avgSZL    = allBranch.reduce((s, p) => s + (p.price_szl || 0), 0) / allBranch.length;
+    const mat       = allBranch[0]?.material || id;
+
+    const zRow = document.createElement("div");
+    zRow.className = "parity-row";
+    zRow.innerHTML = `<span class="mat">${mat}</span><span class="val">${fmt(avgZAR)}</span>`;
+    zarEl.appendChild(zRow);
+
+    const premium = ((avgSZL - avgZAR) / avgZAR * 100).toFixed(1);
+    const sRow = document.createElement("div");
+    sRow.className = "parity-row";
+    sRow.innerHTML = `
+      <span class="mat">${mat}</span>
+      <span>
+        <span class="val">${fmt(avgSZL, "E")}</span>
+        <span class="premium">+${premium}%</span>
+      </span>`;
+    szlEl.appendChild(sRow);
+  });
+}
+
+/* ── BRANCH TAB SWITCHING ─────────────────────────────────────── */
+function showBranch(index, btn) {
+  activeBranch = index;
+  document.querySelectorAll(".branch-tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+  if (DATA) renderBranchTable(index, DATA);
+}
+
+/* ── SUPABASE CONFIG ──────────────────────────────────────────── */
+const SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8";
+
+/* ── SUPABASE FETCH ────────────────────────────────────────────── */
+async function fetchFromSupabase() {
+  /* Get the latest price for each material+city combination */
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/prices?select=*&order=timestamp.desc&limit=100`,
+    { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+  );
+  if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
+  const rows = await res.json();
+  if (!rows.length) throw new Error("No data in Supabase yet");
+
+  /* Deduplicate — keep only the latest row per material+city */
+  const seen     = new Set();
+  const latest   = [];
+  for (const row of rows) {
+    const key = `${row.material_id}__${row.city}`;
+    if (!seen.has(key)) { seen.add(key); latest.push(row); }
+  }
+
+  /* Group by branch */
+  const branchMap = {};
+  for (const row of latest) {
+    const key = `${row.branch}||${row.city}`;
+    if (!branchMap[key]) branchMap[key] = { branch: row.branch, city: row.city, products: [] };
+    branchMap[key].products.push({
+      material_id: row.material_id,
+      material:    row.material,
+      price_zar:   row.price_zar,
+      price_szl:   row.price_szl,
+      delta_24h:   row.delta_24h,
+      delta_30d:   null,
+    });
+  }
+
+  /* Get most recent timestamp */
+  const lastUpdated = rows[0]?.timestamp
+    ? new Date(rows[0].timestamp).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })
+    : "Unknown";
+
+  return {
+    last_updated:   lastUpdated,
+    border_premium: 0.20,
+    zar_to_szl:     1.0,
+    source:         "Cashbuild SA — Live via Sekelo Aggregator",
+    branches:       Object.values(branchMap),
+  };
+}
+
+/* ── REALTIME SUBSCRIPTION ────────────────────────────────────── */
+function subscribeRealtime() {
+  /* Supabase realtime via WebSocket — reloads data on any new insert */
+  const ws = new WebSocket(
+    `wss://glvpdeneagsqwxzrtaln.supabase.co/realtime/v1/websocket?apikey=${SUPABASE_KEY}&vsn=1.0.0`
+  );
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      topic: "realtime:public:prices",
+      event: "phx_join",
+      payload: {},
+      ref: "1"
+    }));
+  };
+  ws.onmessage = (msg) => {
+    const data = JSON.parse(msg.data);
+    if (data.event === "INSERT") {
+      console.log("Sekelo: new price received — refreshing");
+      loadData();
+    }
+  };
+  ws.onerror = () => console.warn("Sekelo: realtime unavailable — using polling");
+}
+
+/* ── DATA LOADER ──────────────────────────────────────────────── */
+async function loadData() {
+  try {
+    DATA = await fetchFromSupabase();
+  } catch (e) {
+    console.warn("Supabase unavailable — using demo data:", e.message);
+    DATA = DEMO_DATA;
+  }
+  render(DATA);
+}
+
+loadData();
+subscribeRealtime();
+</script>
+</body>
+</html>
