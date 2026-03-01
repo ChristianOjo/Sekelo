@@ -1,6 +1,2 @@
 [deploy]
-startCommand = "python scraper.py"
-
-[[crons]]
-schedule = "0 6 * * *"
-command = "python scraper.py"
+startCommand = "playwright install chromium && python scraper.py"
