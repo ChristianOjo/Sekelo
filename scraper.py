@@ -43,17 +43,17 @@ PRODUCTS = [
     {
         "id":    "rebar",
         "label": "Steel Rebar Y12",
-        "url":   "https://www.cashbuild.co.za/steel-and-mesh",
+        "url":   "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa",
     },
     {
         "id":    "timber",
         "label": "Structural Timber S5",
-        "url":   "https://www.cashbuild.co.za/timber-and-boards",
+        "url":   "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m",
     },
     {
         "id":    "bricks",
         "label": "Stock Bricks (per 1000)",
-        "url":   "https://www.cashbuild.co.za/bricks-blocks-and-pavers",
+        "url":   "https://www.cashbuild.co.za/cement-plaster-bricks/1099954-brick-cement-stock",
     },
 ]
 
