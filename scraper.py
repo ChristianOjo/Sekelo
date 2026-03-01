@@ -53,7 +53,7 @@ PRODUCTS = [
     {
         "id":    "bricks",
         "label": "Stock Bricks (per 1000)",
-        "url":   "https://www.cashbuild.co.za/cement-plaster-bricks/1099954-brick-cement-stock",
+        "url":   "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140",
     },
 ]
 
