@@ -104,23 +104,19 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 def select_branch(page, search_term):
     try:
-        # Dismiss any open modal first
-        try:
-            page.click(".modal .close, button[data-dismiss='modal']", timeout=2000)
+        # If modal is already open, work inside it
+        # Otherwise click Change Store to open it
+        modal = page.query_selector("#storeSelectorModal.in")
+        if not modal:
+            page.click(".store-change__link-text", timeout=5000)
             time.sleep(1)
-        except:
-            pass
 
-        # Click Change Store
-        page.click(".store-change__link-text", timeout=5000)
-        time.sleep(1)
-
-        # Fill search
-        page.fill("#searchStore, input[placeholder*='store'], input[placeholder*='address']", search_term)
+        # Fill search box inside the modal
+        page.fill("#storeSelectorModal input[type='text'], #storeSelectorModal input[type='search']", search_term)
         time.sleep(2)
 
-        # Click first result
-        page.click(f".store-list .store-item:first-child, text={search_term}", timeout=5000)
+        # Click first result in the list
+        page.click("#storeSelectorModal .store-list .store-item:first-child", timeout=5000)
         time.sleep(2)
         return True
     except Exception as e:
