@@ -21,8 +21,8 @@ BORDER_PREMIUM = 0.20
 ZAR_TO_SZL = 1.0
 
 BRANCHES = [
-    {"name": "Southgate | Cashbuild", "city": "Joburg", "search": "Southgate"},
-    {"name": "Nelspruit Plaza | Cashbuild", "city": "Nelspruit", "search": "Nelspruit Plaza"},
+    {"name": "Southgate | Cashbuild", "city": "Joburg", "search": "southgate"},
+    {"name": "Nelspruit Plaza | Cashbuild", "city": "Nelspruit", "search": "nelspruit"},
 ]
 
 PRODUCTS = [
@@ -61,24 +61,78 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 # ── BROWSER ─────────────────────────────────────────────────────
 
-def bake_store_cookie(page, branch_name, start_url):
+def bake_store_cookie(page, branch_name, search_term, start_url):
     """Sets the store context and waits for the redirect to finish."""
     print(f"  [setup] Baking cookie for: {branch_name}")
-    page.goto(start_url, wait_until="networkidle", timeout=30000)
-
-    page.wait_for_selector(".store-list", timeout=15000)
-    stores = page.query_selector_all(".store-list li")
-    search_term = branch_name.split("|")[0].strip().lower()
-
+    
+    # Navigate to trigger the store selector modal
+    page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
+    
+    # Wait for modal to appear
+    try:
+        page.wait_for_selector("#storeSelectorModal", timeout=15000)
+        print("  [setup] Store modal detected")
+    except Exception:
+        print("  [setup] No modal found, may already have cookie")
+        page.goto(start_url, wait_until="networkidle", timeout=30000)
+        return True
+    
+    # Wait for store list to populate
+    try:
+        page.wait_for_selector(".store-list", timeout=15000)
+        page.wait_for_timeout(2000)  # Extra wait for dynamic content
+    except Exception:
+        print("  [setup] Store list not found, trying alternative selectors")
+        # Try alternative selectors
+        for selector in ["[data-testid='store-list']", ".stores", ".store-selector"]:
+            try:
+                page.wait_for_selector(selector, timeout=5000)
+                print(f"  [setup] Found alternative selector: {selector}")
+                break
+            except Exception:
+                continue
+    
+    # Get all store elements with multiple possible selectors
+    stores = []
+    for selector in [".store-list li", ".store-list .store-item", "li.store-item", "[data-store]"]:
+        stores = page.query_selector_all(selector)
+        if stores:
+            print(f"  [setup] Found {len(stores)} stores using selector: {selector}")
+            break
+    
+    if not stores:
+        print("  [setup] No stores found in any selector")
+        # Debug: print page content
+        print("  [debug] Page URL:", page.url)
+        return False
+    
+    # Debug: print all store names for troubleshooting
+    print("  [debug] Available stores:")
+    for i, store in enumerate(stores[:10]):  # First 10 only
+        try:
+            text = store.inner_text().strip().lower()
+            print(f"    [{i}] {text}")
+        except Exception:
+            print(f"    [{i}] <unable to read>")
+    
+    # Search for matching store with flexible matching
+    search_lower = search_term.lower().strip()
     for store in stores:
-        if search_term in store.inner_text().lower():
-            store.click()
-            page.wait_for_selector("#storeSelectorModal", state="hidden", timeout=10000)
-            page.wait_for_load_state("networkidle", timeout=10000)
-            page.goto(start_url, wait_until="networkidle", timeout=30000)
-            print(f"  [setup] Cookie baked: {branch_name}")
-            return True
-
+        try:
+            store_text = store.inner_text().strip().lower()
+            # Multiple matching strategies
+            if search_lower in store_text or search_term.lower() in store_text:
+                print(f"  [setup] Match found: '{store_text}'")
+                store.click()
+                page.wait_for_selector("#storeSelectorModal", state="hidden", timeout=10000)
+                page.wait_for_load_state("networkidle", timeout=10000)
+                page.wait_for_timeout(2000)  # Extra wait for cookie to settle
+                print(f"  [setup] Cookie baked: {branch_name}")
+                return True
+        except Exception as e:
+            print(f"  [setup] Error reading store: {e}")
+            continue
+    
     print(f"  [setup] Branch not found: {search_term}")
     return False
 
@@ -87,16 +141,40 @@ def extract_price_safe(page, expected_url):
     """Three-point check: correct URL, non-zero content, return float."""
     try:
         page.wait_for_url(expected_url, timeout=10000)
+        
+        # Wait for price to be non-zero (AJAX load)
         page.wait_for_selector(
             "span.current-price-value[content]:not([content='0'])",
             timeout=12000
         )
+        
         el = page.query_selector("span.current-price-value")
         if el:
             val = el.get_attribute("content")
-            if val and float(val) > 0:
-                return float(val)
-    except Exception:
+            if val:
+                try:
+                    price = float(val)
+                    if price > 0:
+                        return price
+                except ValueError:
+                    pass
+        
+        # Fallback: try to get text content
+        el = page.query_selector("span.current-price-value")
+        if el:
+            text = el.inner_text().strip()
+            if text:
+                # Remove R symbol and commas
+                text = text.replace("R", "").replace(",", "").strip()
+                try:
+                    price = float(text)
+                    if price > 0:
+                        return price
+                except ValueError:
+                    pass
+                    
+    except Exception as e:
+        print(f"  [extract] Error: {e}")
         pass
     return None
 
@@ -115,23 +193,24 @@ def scrape():
             )
             page = context.new_page()
 
-            if not bake_store_cookie(page, branch["name"], PRODUCTS[0]["url"]):
+            if not bake_store_cookie(page, branch["name"], branch["search"], PRODUCTS[0]["url"]):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
                 continue
 
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
-                page.goto(product["url"], wait_until="networkidle", timeout=30000)
+                page.goto(product["url"], wait_until="domcontentloaded", timeout=30000)
+                page.wait_for_timeout(1000)  # Wait for AJAX
 
                 # Re-select store if modal reappeared
-                if page.query_selector("#storeSelectorModal.in"):
-                    bake_store_cookie(page, branch["name"], product["url"])
+                if page.query_selector("#storeSelectorModal"):
+                    print("  [warn] Modal reappeared, re-baking cookie")
+                    bake_store_cookie(page, branch["name"], branch["search"], product["url"])
 
                 price_zar = extract_price_safe(page, product["url"])
 
                 if price_zar:
-                    # FIX 2: safe delta calculation — handles None price_zar in prev
                     prev = get_previous_price(product["id"], branch["city"])
                     delta = None
                     if prev and prev.get("price_zar"):
@@ -139,7 +218,6 @@ def scrape():
                             ((price_zar - prev["price_zar"]) / prev["price_zar"]) * 100, 2
                         )
 
-                    # FIX 3: capture return value for logging
                     price_szl = push_price(
                         product["id"], product["label"],
                         branch["name"], branch["city"],
