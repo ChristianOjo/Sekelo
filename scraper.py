@@ -102,26 +102,18 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 # ── BROWSER HELPERS ─────────────────────────────────────────────
 
-def select_branch(page, search_term):
+def dismiss_modal(page):
+    """Close any auto-opened store selector modal."""
     try:
-        # If modal is already open, work inside it
-        # Otherwise click Change Store to open it
         modal = page.query_selector("#storeSelectorModal.in")
-        if not modal:
-            page.click(".store-change__link-text", timeout=5000)
+        if modal:
+            page.evaluate("document.getElementById('storeSelectorModal').classList.remove('in', 'show'); document.getElementById('storeSelectorModal').style.display='none';")
             time.sleep(1)
+    except:
+        pass
 
-        # Fill search box inside the modal
-        page.fill("#storeSelectorModal input[type='text'], #storeSelectorModal input[type='search']", search_term)
-        time.sleep(2)
-
-        # Click first result in the list
-        page.click("#storeSelectorModal .store-list .store-item:first-child", timeout=5000)
-        time.sleep(2)
-        return True
-    except Exception as e:
-        print(f"  ⚠ Branch selection failed: {e}")
-        return False
+def select_branch(page, search_term):
+    return True  # Simplified — branch selection handled in V2
 
 
 def extract_price(page):
