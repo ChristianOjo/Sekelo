@@ -1,6 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper — Final Production v1.1
+Cashbuild Scraper — Production v1.2 (Final)
 """
 
 import time
@@ -27,10 +27,10 @@ BRANCHES = [
 ]
 
 PRODUCTS = [
-    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 20, "min_price": 80, "max_price": 150},
-    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200},
-    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 25, "min_price": 100, "max_price": 200},
+    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 25, "min_price": 80, "max_price": 150, "needs_store_select": True},
+    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_store_select": False},
+    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300, "needs_store_select": False},
+    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 25, "min_price": 100, "max_price": 200, "needs_store_select": True},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -67,7 +67,6 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h, availa
 # ── BROWSER ─────────────────────────────────────────────────────
 
 def dismiss_modal(page):
-    """Dismiss store selector modal."""
     for attempt in range(3):
         modal = page.query_selector("#storeSelectorModal")
         if not modal:
@@ -89,23 +88,12 @@ def dismiss_modal(page):
     return False
 
 
-def bake_store_cookie(page, branch_name, search_term, start_url):
-    """Select store ONCE per branch."""
-    print(f"  [setup] Baking cookie for: {branch_name}")
-    
-    page.goto(start_url, wait_until="networkidle", timeout=30000)
-    page.wait_for_timeout(5000)
-    
-    modal = page.query_selector("#storeSelectorModal")
-    if not modal:
-        print("  [setup] No modal, cookie already set")
-        return True
-    
+def select_store(page, search_term):
+    """Select store on current page."""
     try:
         page.wait_for_selector(".store-list .store-item", timeout=15000)
         page.wait_for_timeout(3000)
     except Exception:
-        print("  [setup] Store list not found")
         return False
     
     stores = page.query_selector_all(".store-list .store-item")
@@ -126,24 +114,49 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
                 except Exception:
                     pass
                 page.wait_for_timeout(5000)
-                print(f"  [setup] Cookie baked: {branch_name}")
                 return True
         except Exception:
             continue
     
-    print(f"  [setup] Branch not found: {search_term}")
+    return False
+
+
+def bake_store_cookie(page, branch_name, search_term, start_url):
+    """Initial cookie bake for branch."""
+    print(f"  [setup] Baking cookie for: {branch_name}")
+    
+    page.goto(start_url, wait_until="networkidle", timeout=30000)
+    page.wait_for_timeout(5000)
+    
+    modal = page.query_selector("#storeSelectorModal")
+    if not modal:
+        print("  [setup] No modal, cookie already set")
+        return True
+    
+    if select_store(page, search_term):
+        print(f"  [setup] Cookie baked: {branch_name}")
+        return True
+    
     return False
 
 
 def extract_price_safe(page, product, max_retries=3):
-    """Extract price — try hard before giving up."""
+    """Extract price with multiple selectors."""
     
-    price_selectors = [
-        "span.current-price-value",
-        ".product-single__price .money",
-        "span.money",
-        ".price",
-    ]
+    # Different selectors for different product types
+    if product.get("needs_store_select", False):
+        # Cement/Blocks need broader selectors
+        price_selectors = [
+            "span.current-price-value",
+            ".price",
+            ".product-single__price .money",
+            "span.money",
+        ]
+    else:
+        # Rebar/Timber work with primary selector
+        price_selectors = [
+            "span.current-price-value",
+        ]
     
     ajax_wait = product.get("ajax_wait", 10)
     min_price = product.get("min_price", 0)
@@ -156,8 +169,11 @@ def extract_price_safe(page, product, max_retries=3):
             
             for selector in price_selectors:
                 try:
-                    el = page.query_selector(selector)
-                    if el and el.is_visible():
+                    els = page.query_selector_all(selector)
+                    for el in els:
+                        if not el.is_visible():
+                            continue
+                        
                         content_val = el.get_attribute("content")
                         if content_val:
                             try:
@@ -186,7 +202,7 @@ def extract_price_safe(page, product, max_retries=3):
             if retry < max_retries - 1:
                 page.wait_for_timeout(5000)
                     
-        except Exception as e:
+        except Exception:
             if retry < max_retries - 1:
                 page.wait_for_timeout(5000)
     
@@ -207,6 +223,7 @@ def scrape():
             )
             page = context.new_page()
 
+            # Initial cookie bake
             if not bake_store_cookie(page, branch["name"], branch["search"], PRODUCTS[0]["url"]):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
@@ -217,6 +234,13 @@ def scrape():
                 
                 page.goto(product["url"], wait_until="networkidle", timeout=30000)
                 page.wait_for_timeout(5000)
+                
+                # CRITICAL: Fresh store selection for Cement/Blocks
+                if product.get("needs_store_select", False):
+                    modal = page.query_selector("#storeSelectorModal")
+                    if modal:
+                        print("  [setup] Selecting store for this product...")
+                        select_store(page, branch["search"])
                 
                 if page.query_selector("#storeSelectorModal"):
                     dismiss_modal(page)
