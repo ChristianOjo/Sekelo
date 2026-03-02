@@ -1,6 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper - Production v1.0
+Cashbuild Scraper — Final Production v1.1
 """
 
 import time
@@ -30,7 +30,7 @@ PRODUCTS = [
     {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 20, "min_price": 80, "max_price": 150},
     {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200},
     {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 20, "min_price": 100, "max_price": 200},
+    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 25, "min_price": 100, "max_price": 200},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -136,34 +136,28 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
 
 
 def extract_price_safe(page, product, max_retries=3):
-    """Extract price with strict validation."""
+    """Extract price — try hard before giving up."""
     
-    # Primary selector only - most reliable
     price_selectors = [
         "span.current-price-value",
+        ".product-single__price .money",
+        "span.money",
+        ".price",
     ]
     
     ajax_wait = product.get("ajax_wait", 10)
     min_price = product.get("min_price", 0)
     max_price = product.get("max_price", 9999)
     product_id = product.get("id", "unknown")
-    product_label = product.get("label", "Unknown")
     
     for retry in range(max_retries):
         try:
             page.wait_for_timeout(ajax_wait * 1000)
             
-            # Check for out of stock messaging
-            page_content = page.content()
-            if "inform me when" in page_content.lower() or "out of stock" in page_content.lower():
-                print(f"  [warn] {product_id}: Product appears out of stock or unavailable")
-                return None
-            
             for selector in price_selectors:
                 try:
                     el = page.query_selector(selector)
                     if el and el.is_visible():
-                        # Try content attribute (most reliable)
                         content_val = el.get_attribute("content")
                         if content_val:
                             try:
@@ -173,6 +167,19 @@ def extract_price_safe(page, product, max_retries=3):
                                     return price
                             except ValueError:
                                 pass
+                        
+                        text_val = el.inner_text().strip()
+                        if text_val:
+                            text_val = text_val.replace("R", "").replace(",", "").strip()
+                            match = re.search(r'[\d.]+', text_val)
+                            if match:
+                                try:
+                                    price = float(match.group())
+                                    if min_price <= price <= max_price:
+                                        print(f"  [extract] {product_id}: R{price} via {selector} (text)")
+                                        return price
+                                except ValueError:
+                                    pass
                 except Exception:
                     continue
             
@@ -180,11 +187,9 @@ def extract_price_safe(page, product, max_retries=3):
                 page.wait_for_timeout(5000)
                     
         except Exception as e:
-            print(f"  [error] {product_id}: {e}")
             if retry < max_retries - 1:
                 page.wait_for_timeout(5000)
     
-    print(f"  [debug] {product_id}: No valid price found")
     return None
 
 # ── SCRAPE ───────────────────────────────────────────────────────
@@ -202,7 +207,6 @@ def scrape():
             )
             page = context.new_page()
 
-            # Select store ONCE per branch
             if not bake_store_cookie(page, branch["name"], branch["search"], PRODUCTS[0]["url"]):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
@@ -211,11 +215,9 @@ def scrape():
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
                 
-                # Navigate to product page
                 page.goto(product["url"], wait_until="networkidle", timeout=30000)
                 page.wait_for_timeout(5000)
                 
-                # Dismiss modal if it reappeared
                 if page.query_selector("#storeSelectorModal"):
                     dismiss_modal(page)
                     page.wait_for_timeout(3000)
@@ -237,13 +239,12 @@ def scrape():
                     )
                     print(f"     ✅ SUCCESS: R{price_zar} (E{price_szl}) | Delta: {delta}%")
                 else:
-                    # Record as unavailable
                     push_price(
                         product["id"], product["label"],
                         branch["name"], branch["city"],
                         None, None, available=False
                     )
-                    print("     ⚠️  UNAVAILABLE: No price (out of stock or regional pricing unavailable)")
+                    print("     ⚠️  UNAVAILABLE: No price found")
 
                 time.sleep(2)
 
