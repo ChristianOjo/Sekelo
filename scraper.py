@@ -159,9 +159,19 @@ def scrape():
                     time.sleep(3)
 
                     # Dismiss modal before extracting price
-                    dismiss_modal(page)
+dismiss_modal(page)
 
-                    price_zar = extract_price(page)
+# Debug — log page title and price HTML for cement only
+if product["id"] == "cement":
+    title = page.title()
+    price_el = page.query_selector("span.current-price-value")
+    print(f"     [debug] page title: {title}")
+    print(f"     [debug] price element found: {price_el is not None}")
+    if price_el:
+        print(f"     [debug] price content attr: {price_el.get_attribute('content')}")
+        print(f"     [debug] price inner text: {price_el.inner_text()[:50]}")
+
+price_zar = extract_price(page)
 
                     if price_zar:
                         prev      = get_previous_price(product["id"], branch["city"])
