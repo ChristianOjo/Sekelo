@@ -1,6 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper
+Cashbuild Scraper — Sequential Precision Build
 """
 
 import time
@@ -91,71 +91,70 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 # ── BROWSER ─────────────────────────────────────────────────────
 
-def bake_store_cookie(context, branch_name, first_product_url):
-    """Select store once, wait for networkidle, re-navigate to confirm cookie is set."""
-    page = context.new_page()
+def bake_store_cookie(page, branch_name, first_product_url):
+    """
+    Load first product page, select store from modal,
+    wait for modal to be fully detached from DOM,
+    then re-navigate to confirm cookie is baked.
+    """
+    search_term = branch_name.split("|")[0].strip().lower()
+
+    # Step 1: Load page with networkidle — waits for all background JS
+    print(f"  [setup] Loading page for store selection...")
+    page.goto(first_product_url, wait_until="networkidle", timeout=30000)
+
+    # Step 2: Wait for store list to appear
     try:
-        page.goto(first_product_url, timeout=30000, wait_until="domcontentloaded")
-        time.sleep(3)
+        page.wait_for_selector(".store-list", timeout=10000)
+    except Exception:
+        print(f"  [setup] Store list not found — modal may not have opened")
+        return
 
-        modal = page.query_selector("#storeSelectorModal.in")
-        if not modal:
-            print(f"  [setup] No modal on load — checking store list anyway")
+    time.sleep(1)
 
-        page.wait_for_selector(".store-list", timeout=8000)
-        time.sleep(1)
+    # Step 3: Find and click the correct branch
+    stores = page.query_selector_all(".store-list li, .store-list .store-item")
+    clicked = False
+    for store in stores:
+        if search_term in store.inner_text().lower():
+            store.click()
+            clicked = True
+            print(f"  [setup] Clicked: {branch_name}")
+            break
 
-        stores = page.query_selector_all(".store-list li, .store-list .store-item")
-        search_term = branch_name.split("|")[0].strip().lower()
-        clicked = False
-        for store in stores:
-            if search_term in store.inner_text().lower():
-                store.click()
-                clicked = True
-                break
+    if not clicked:
+        print(f"  [setup] Branch not found in list: {search_term}")
+        return
 
-        if not clicked:
-            print(f"  [setup] Branch not found: {branch_name}")
-            return
+    # Step 4: Wait for modal to be fully hidden/detached from DOM
+    try:
+        page.wait_for_selector("#storeSelectorModal", state="hidden", timeout=10000)
+        print(f"  [setup] Modal detached")
+    except Exception:
+        # If wait_for_selector hidden fails, give it time
+        time.sleep(4)
 
-        # Wait for page to fully react to store selection
-        try:
-            page.wait_for_load_state("networkidle", timeout=10000)
-        except Exception:
-            time.sleep(5)
-
-        # Re-navigate to confirm cookie is baked
-        page.goto(first_product_url, timeout=30000, wait_until="domcontentloaded")
-        try:
-            page.wait_for_load_state("networkidle", timeout=8000)
-        except Exception:
-            time.sleep(4)
-
-        print(f"  [setup] Store cookie baked: {branch_name}")
-
-    except Exception as e:
-        print(f"  [setup] Failed: {e}")
-    finally:
-        page.close()
+    # Step 5: Re-navigate to same URL — forces server to render price with store cookie
+    print(f"  [setup] Re-navigating to bake cookie...")
+    page.goto(first_product_url, wait_until="networkidle", timeout=30000)
+    print(f"  [setup] Store cookie baked: {branch_name}")
 
 
-def store_still_needed(page, branch_name):
-    """If modal reappeared, re-select the store."""
+def check_and_reselect(page, branch_name):
+    """If modal reappeared on a product page, re-select the store."""
     modal = page.query_selector("#storeSelectorModal.in")
     if not modal:
         return
-    print(f"  [reselect] Modal reappeared — re-selecting store")
+
+    print(f"  [reselect] Modal reappeared — re-selecting")
+    search_term = branch_name.split("|")[0].strip().lower()
     try:
         page.wait_for_selector(".store-list", timeout=8000)
         stores = page.query_selector_all(".store-list li, .store-list .store-item")
-        search_term = branch_name.split("|")[0].strip().lower()
         for store in stores:
             if search_term in store.inner_text().lower():
                 store.click()
-                try:
-                    page.wait_for_load_state("networkidle", timeout=8000)
-                except Exception:
-                    time.sleep(4)
+                page.wait_for_selector("#storeSelectorModal", state="hidden", timeout=8000)
                 break
     except Exception as e:
         print(f"  [reselect] Failed: {e}")
@@ -163,26 +162,25 @@ def store_still_needed(page, branch_name):
 
 def extract_price(page):
     """
-    Wait for a price element that contains an actual numeric value (not empty/placeholder).
-    Uses wait_for_selector with :has-text to ensure the Rand value has loaded.
-    Returns float or None.
+    Wait for the price element to contain an actual Rand value (not empty/placeholder).
+    This handles AJAX-loaded regional prices for cement and blocks.
     """
-    price = None  # FIX 1: always reset before extraction
+    price = None
     try:
-        # Wait for price element to contain 'R' (confirms value has loaded, not placeholder)
+        # Wait until the element exists AND contains 'R' — confirms AJAX price has loaded
         page.wait_for_selector("span.current-price-value:has-text('R')", timeout=10000)
         el = page.query_selector("span.current-price-value")
         if el:
             content = el.get_attribute("content")
-            if content and content.strip():
+            if content and content.strip() and float(content) > 0:
                 price = float(content)
     except Exception:
-        # Fallback: try getting content attribute directly without text check
+        # Fallback: try content attribute directly
         try:
             el = page.query_selector("span.current-price-value")
             if el:
                 content = el.get_attribute("content")
-                if content and content.strip() and content != "0":
+                if content and content.strip() and float(content) > 0:
                     price = float(content)
         except Exception:
             price = None
@@ -199,34 +197,33 @@ def scrape():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
 
+        # SEQUENTIAL: one branch at a time, fully complete before next
         for branch in BRANCHES:
             print(f"  {branch['name']} ({branch['city']})")
 
+            # One context, one page per branch — no parallel execution
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )
+            page = context.new_page()
 
-            # Bake store cookie using first product page
-            bake_store_cookie(context, branch["name"], PRODUCTS[0]["url"])
+            # Bake store cookie on this single page object
+            bake_store_cookie(page, branch["name"], PRODUCTS[0]["url"])
 
+            # SEQUENTIAL: one product at a time on the SAME page object
             for product in PRODUCTS:
-                price_zar = None  # FIX 1: explicit variable purge each iteration
+                price_zar = None  # explicit reset each iteration
 
-                page = context.new_page()
                 try:
                     print(f"  -> {product['label']}")
 
-                    # Navigate to product
-                    page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
-                    try:
-                        page.wait_for_load_state("networkidle", timeout=8000)
-                    except Exception:
-                        time.sleep(4)
+                    # Navigate — networkidle waits for all AJAX to settle
+                    page.goto(product["url"], wait_until="networkidle", timeout=30000)
 
-                    # FIX 3: check if store modal reappeared and re-select if needed
-                    store_still_needed(page, branch["name"])
+                    # Check if modal reappeared and re-select if needed
+                    check_and_reselect(page, branch["name"])
 
-                    # FIX 2: extract price only after value has loaded
+                    # Extract price — waits for actual value to load
                     price_zar = extract_price(page)
 
                     if price_zar:
@@ -250,11 +247,10 @@ def scrape():
 
                 except Exception as e:
                     print(f"     Error: {e}")
-                finally:
-                    page.close()
 
                 time.sleep(2)
 
+            page.close()
             context.close()
             print()
 
