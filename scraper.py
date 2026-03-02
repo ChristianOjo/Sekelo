@@ -1,6 +1,9 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper — Production v1.0
+Cashbuild Scraper — Production v2.0 (8/8 Products)
+
+Tracks SA construction prices for Eswatini market intelligence.
+Converts concrete block per-unit prices to per-pallet for consistent comparison.
 """
 
 import time
@@ -9,17 +12,23 @@ import requests
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
+# ── CONFIG ─────────────────────────────────────────────────────
+
 SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8"
+
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json",
-    "Prefer": "return-minimal"
+    "Prefer": "return=minimal"
 }
 
-BORDER_PREMIUM = 0.20
-ZAR_TO_SZL = 1.0
+BORDER_PREMIUM = 0.20  # 20% border/transport premium
+ZAR_TO_SZL = 1.0       # Adjust if exchange rate changes
+
+# Concrete blocks: standard count per pallet for 390x190x140mm
+BLOCKS_PER_PALLET = 173
 
 BRANCHES = [
     {"name": "Southgate | Cashbuild", "city": "Joburg", "search": "southgate"},
@@ -27,13 +36,48 @@ BRANCHES = [
 ]
 
 PRODUCTS = [
-    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 25, "min_price": 80, "max_price": 150, "needs_store_select": True},
-    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_store_select": False},
-    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300, "needs_store_select": False},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 25, "min_price": 100, "max_price": 200, "needs_store_select": True},
+    {
+        "id": "cement", 
+        "label": "PPC Cement 50kg", 
+        "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", 
+        "ajax_wait": 25, 
+        "min_price": 80, 
+        "max_price": 150, 
+        "needs_store_select": True
+    },
+    {
+        "id": "rebar", 
+        "label": "Steel Rebar Y12", 
+        "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", 
+        "ajax_wait": 10, 
+        "min_price": 100, 
+        "max_price": 200, 
+        "needs_store_select": False
+    },
+    {
+        "id": "timber", 
+        "label": "Structural Timber S5", 
+        "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", 
+        "ajax_wait": 15, 
+        "min_price": 180, 
+        "max_price": 300, 
+        "needs_store_select": False
+    },
+    {
+        "id": "bricks", 
+        "label": "Concrete Block 390x190x140", 
+        "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", 
+        "ajax_wait": 25, 
+        "min_price": 1500,    # Per pallet (was 100 for per-unit)
+        "max_price": 2000,    # Per pallet (was 200 for per-unit)
+        "needs_store_select": True
+    },
 ]
 
+# ── SUPABASE ────────────────────────────────────────────────────
+
 def get_previous_price(material_id, city):
+    """Fetch last recorded price for delta calculation."""
     try:
         res = requests.get(f"{SUPABASE_URL}/rest/v1/prices", headers=HEADERS, params={
             "material_id": f"eq.{material_id}",
@@ -47,42 +91,61 @@ def get_previous_price(material_id, city):
     except Exception:
         return None
 
+
 def push_price(material_id, material, branch, city, price_zar, delta_24h, available=True):
+    """Push price record to Supabase."""
     price_szl = round(price_zar * ZAR_TO_SZL * (1 + BORDER_PREMIUM), 2) if price_zar else None
+    
     payload = {
-        "material_id": material_id, "material": material, "branch": branch,
-        "city": city, "price_zar": price_zar, "price_szl": price_szl,
-        "delta_24h": delta_24h, "currency": "ZAR", "available": available
+        "material_id": material_id, 
+        "material": material, 
+        "branch": branch,
+        "city": city, 
+        "price_zar": price_zar, 
+        "price_szl": price_szl,
+        "delta_24h": delta_24h, 
+        "currency": "ZAR", 
+        "available": available
     }
     requests.post(f"{SUPABASE_URL}/rest/v1/prices", headers=HEADERS, json=payload)
     return price_szl
 
+# ── BROWSER ─────────────────────────────────────────────────────
+
 def dismiss_modal(page):
+    """Aggressively dismiss store selector modal."""
     for attempt in range(3):
         modal = page.query_selector("#storeSelectorModal")
         if not modal:
             return True
+        
         backdrop = page.query_selector("#storeSelectorModal .modal-backdrop")
         if backdrop:
             try:
                 backdrop.click(force=True)
             except Exception:
                 pass
+        
         for i in range(20):
             modal = page.query_selector("#storeSelectorModal")
             if not modal or modal.is_hidden():
                 return True
             page.wait_for_timeout(500)
+    
     return False
 
+
 def select_store(page, search_term):
+    """Select store on current page."""
     try:
         page.wait_for_selector(".store-list .store-item", timeout=15000)
         page.wait_for_timeout(3000)
     except Exception:
         return False
+    
     stores = page.query_selector_all(".store-list .store-item")
     search_lower = search_term.lower().strip()
+    
     for store in stores:
         try:
             store_text = store.inner_text().strip().lower()
@@ -101,26 +164,46 @@ def select_store(page, search_term):
                 return True
         except Exception:
             continue
+    
     return False
 
+
 def bake_store_cookie(page, branch_name, search_term, start_url):
+    """Select store ONCE per branch for initial context."""
     print(f"  [setup] Baking cookie for: {branch_name}")
+    
     page.goto(start_url, wait_until="networkidle", timeout=30000)
     page.wait_for_timeout(5000)
+    
     modal = page.query_selector("#storeSelectorModal")
     if not modal:
         print("  [setup] No modal, cookie already set")
         return True
+    
     if select_store(page, search_term):
         print(f"  [setup] Cookie baked: {branch_name}")
         return True
+    
     return False
 
+
 def extract_price_safe(page, product, max_retries=3):
+    """Extract price with product-specific handling and blocks conversion."""
+    
+    # Different selectors for different product types
     if product.get("needs_store_select", False):
-        price_selectors = ["span.current-price-value", ".price", ".product-single__price .money", "span.money"]
+        # Cement/Blocks need broader selectors
+        price_selectors = [
+            "span.current-price-value",
+            ".price",
+            ".product-single__price .money",
+            "span.money",
+        ]
     else:
-        price_selectors = ["span.current-price-value"]
+        # Rebar/Timber work with primary selector
+        price_selectors = [
+            "span.current-price-value",
+        ]
     
     ajax_wait = product.get("ajax_wait", 10)
     min_price = product.get("min_price", 0)
@@ -130,21 +213,29 @@ def extract_price_safe(page, product, max_retries=3):
     for retry in range(max_retries):
         try:
             page.wait_for_timeout(ajax_wait * 1000)
+            
             for selector in price_selectors:
                 try:
                     els = page.query_selector_all(selector)
                     for el in els:
                         if not el.is_visible():
                             continue
+                        
                         content_val = el.get_attribute("content")
                         if content_val:
                             try:
                                 price = float(content_val)
                                 if min_price <= price <= max_price:
-                                    print(f"  [extract] {product_id}: R{price}")
+                                    # BLOCKS CONVERSION: per-unit → per-pallet
+                                    if product_id == "bricks":
+                                        price = price * BLOCKS_PER_PALLET
+                                        print(f"  [extract] {product_id}: R{price:.2f} (R{price/BLOCKS_PER_PALLET:.2f} × {BLOCKS_PER_PALLET})")
+                                    else:
+                                        print(f"  [extract] {product_id}: R{price}")
                                     return price
                             except ValueError:
                                 pass
+                        
                         text_val = el.inner_text().strip()
                         if text_val:
                             text_val = text_val.replace("R", "").replace(",", "").strip()
@@ -153,57 +244,101 @@ def extract_price_safe(page, product, max_retries=3):
                                 try:
                                     price = float(match.group())
                                     if min_price <= price <= max_price:
-                                        print(f"  [extract] {product_id}: R{price}")
+                                        # BLOCKS CONVERSION: per-unit → per-pallet
+                                        if product_id == "bricks":
+                                            price = price * BLOCKS_PER_PALLET
+                                            print(f"  [extract] {product_id}: R{price:.2f} (R{price/BLOCKS_PER_PALLET:.2f} × {BLOCKS_PER_PALLET})")
+                                        else:
+                                            print(f"  [extract] {product_id}: R{price}")
                                         return price
                                 except ValueError:
                                     pass
                 except Exception:
                     continue
+            
             if retry < max_retries - 1:
                 page.wait_for_timeout(5000)
+                    
         except Exception:
             if retry < max_retries - 1:
                 page.wait_for_timeout(5000)
+    
     return None
 
+# ── SCRAPE ───────────────────────────────────────────────────────
+
 def scrape():
+    """Main scraping function."""
     print(f"\nSekelo Scraper Start: {datetime.now()}\n")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
+
         for branch in BRANCHES:
             print(f"--- {branch['name']} ---")
-            context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            )
             page = context.new_page()
+
+            # Initial cookie bake for branch
             if not bake_store_cookie(page, branch["name"], branch["search"], PRODUCTS[0]["url"]):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
                 continue
+
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
+                
+                # Navigate to product page
                 page.goto(product["url"], wait_until="networkidle", timeout=30000)
                 page.wait_for_timeout(5000)
+                
+                # Fresh store selection for Cement/Blocks
                 if product.get("needs_store_select", False):
                     modal = page.query_selector("#storeSelectorModal")
                     if modal:
                         print("  [setup] Selecting store for this product...")
                         select_store(page, branch["search"])
+                
+                # Dismiss any remaining modal
                 if page.query_selector("#storeSelectorModal"):
                     dismiss_modal(page)
                     page.wait_for_timeout(3000)
+
                 price_zar = extract_price_safe(page, product)
+
                 if price_zar:
                     prev = get_previous_price(product["id"], branch["city"])
-                    delta = round(((price_zar - prev["price_zar"]) / prev["price_zar"]) * 100, 2) if prev and prev.get("price_zar") else None
-                    price_szl = push_price(product["id"], product["label"], branch["name"], branch["city"], price_zar, delta, available=True)
-                    print(f"     ✅ SUCCESS: R{price_zar} (E{price_szl}) | Delta: {delta}%")
+                    delta = None
+                    if prev and prev.get("price_zar"):
+                        delta = round(
+                            ((price_zar - prev["price_zar"]) / prev["price_zar"]) * 100, 2
+                        )
+
+                    price_szl = push_price(
+                        product["id"], product["label"],
+                        branch["name"], branch["city"],
+                        price_zar, delta, available=True
+                    )
+                    print(f"     ✅ SUCCESS: R{price_zar:.2f} (E{price_szl:.2f}) | Delta: {delta}%")
                 else:
-                    push_price(product["id"], product["label"], branch["name"], branch["city"], None, None, available=False)
+                    push_price(
+                        product["id"], product["label"],
+                        branch["name"], branch["city"],
+                        None, None, available=False
+                    )
                     print("     ⚠️  UNAVAILABLE: No price found")
+
                 time.sleep(2)
+
             context.close()
             print()
+
         browser.close()
+
     print("Scrape complete.")
+
 
 if __name__ == "__main__":
     scrape()
