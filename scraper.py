@@ -67,7 +67,7 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
     
     # Navigate to trigger the store selector modal
     page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)  # Let page settle
+    page.wait_for_timeout(2000)
     
     # Wait for modal to appear
     try:
@@ -80,7 +80,7 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
     # Wait for store list to populate
     try:
         page.wait_for_selector(".store-list .store-item", timeout=15000)
-        page.wait_for_timeout(2000)  # Extra wait for dynamic content
+        page.wait_for_timeout(2000)
     except Exception:
         print("  [setup] Store list not found")
         return False
@@ -105,19 +105,18 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
                 store.scroll_into_view_if_needed(timeout=5000)
                 page.wait_for_timeout(500)
                 
-                # Wait for element to be clickable, then click
-                store.wait_for_element_state("clickable", timeout=10000)
+                # Wait for element to be stable (not animating), then click
+                store.wait_for_element_state("stable", timeout=10000)
                 store.click(force=True)
                 print("  [setup] Store clicked")
                 
-                # Wait for modal to close (increased timeout + polling)
+                # Wait for modal to close with polling
                 print("  [setup] Waiting for modal to close...")
-                for attempt in range(30):  # 30 seconds total
+                for attempt in range(30):
                     modal = page.query_selector("#storeSelectorModal")
                     if modal is None:
                         print("  [setup] Modal closed successfully")
                         break
-                    # Check if modal has 'fade' class (closing animation)
                     modal_class = modal.get_attribute("class") or ""
                     if "fade" in modal_class and "in" not in modal_class:
                         print("  [setup] Modal is fading out")
@@ -127,7 +126,7 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
                     print("  [setup] Warning: Modal may still be open, continuing anyway")
                 
                 page.wait_for_load_state("networkidle", timeout=15000)
-                page.wait_for_timeout(3000)  # Let cookie settle
+                page.wait_for_timeout(3000)
                 print(f"  [setup] Cookie baked: {branch_name}")
                 return True
                 
@@ -143,7 +142,7 @@ def extract_price_safe(page, expected_url):
     """Three-point check: correct URL, non-zero content, return float."""
     try:
         page.wait_for_url(expected_url, timeout=10000)
-        page.wait_for_timeout(2000)  # Let AJAX fire
+        page.wait_for_timeout(2000)
         
         # Wait for price to be non-zero (AJAX load)
         try:
@@ -156,7 +155,6 @@ def extract_price_safe(page, expected_url):
         
         el = page.query_selector("span.current-price-value")
         if el:
-            # Try content attribute first
             val = el.get_attribute("content")
             if val:
                 try:
@@ -166,10 +164,8 @@ def extract_price_safe(page, expected_url):
                 except ValueError:
                     pass
             
-            # Fallback: try to get text content
             text = el.inner_text().strip()
             if text:
-                # Remove R symbol and commas
                 text = text.replace("R", "").replace(",", "").strip()
                 try:
                     price = float(text)
@@ -208,9 +204,8 @@ def scrape():
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
                 page.goto(product["url"], wait_until="domcontentloaded", timeout=30000)
-                page.wait_for_timeout(2000)  # Wait for AJAX
+                page.wait_for_timeout(2000)
 
-                # Re-select store if modal reappeared
                 if page.query_selector("#storeSelectorModal"):
                     print("  [warn] Modal reappeared, re-baking cookie")
                     bake_store_cookie(page, branch["name"], branch["search"], product["url"])
