@@ -16,9 +16,9 @@ from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 # ── SUPABASE CONFIG ─────────────────────────────────────────────
-SUPABASE_URL    = "https://glvpdeneagsqwxzrtaln.supabase.co"
-SUPABASE_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8"
-HEADERS         = {
+SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8"
+HEADERS = {
     "apikey":        SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type":  "application/json",
@@ -26,12 +26,12 @@ HEADERS         = {
 }
 
 # ── SCRAPER CONFIG ──────────────────────────────────────────────
-BORDER_PREMIUM  = 0.20   # 20% SZ landed cost over SA shelf price
-ZAR_TO_SZL      = 1.0    # Pegged 1:1
+BORDER_PREMIUM = 0.20  # 20% SZ landed cost over SA shelf price
+ZAR_TO_SZL     = 1.0   # Pegged 1:1
 
 BRANCHES = [
-    {"name": "Southgate | Cashbuild",       "city": "Joburg",    "search": "Southgate"},
-    {"name": "Nelspruit Plaza | Cashbuild",  "city": "Nelspruit", "search": "Nelspruit"},
+    {"name": "Southgate | Cashbuild",      "city": "Joburg",    "search": "Southgate"},
+    {"name": "Nelspruit Plaza | Cashbuild", "city": "Nelspruit", "search": "Nelspruit"},
 ]
 
 PRODUCTS = [
@@ -52,7 +52,7 @@ PRODUCTS = [
     },
     {
         "id":    "bricks",
-        "label": "Stock Bricks (per 1000)",
+        "label": "Concrete Block 390x190x140",
         "url":   "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140",
     },
 ]
@@ -103,20 +103,25 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 # ── BROWSER HELPERS ─────────────────────────────────────────────
 
 def dismiss_modal(page):
-    """Close any auto-opened store selector modal."""
+    """Force-close any open store selector modal via JavaScript."""
     try:
-        modal = page.query_selector("#storeSelectorModal.in")
-        if modal:
-            page.evaluate("document.getElementById('storeSelectorModal').classList.remove('in', 'show'); document.getElementById('storeSelectorModal').style.display='none';")
-            time.sleep(1)
-    except:
-        pass
-
-def select_branch(page, search_term):
-    return True  # Simplified — branch selection handled in V2
+        page.evaluate("""
+            var modal = document.getElementById('storeSelectorModal');
+            if (modal) {
+                modal.classList.remove('in', 'show');
+                modal.style.display = 'none';
+            }
+            var backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(function(b) { b.remove(); });
+            document.body.classList.remove('modal-open');
+        """)
+        time.sleep(1)
+    except Exception as e:
+        print(f"  ⚠ Modal dismiss failed: {e}")
 
 
 def extract_price(page):
+    """Extract price from the current product page."""
     try:
         el = page.query_selector("span.current-price-value")
         if el:
@@ -151,11 +156,12 @@ def scrape():
                 try:
                     print(f"  → {product['label']}")
                     page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
-time.sleep(3)
-dismiss_modal(page)
-time.sleep(1)
+                    time.sleep(3)
 
-price_zar = extract_price(page)
+                    # Dismiss modal before extracting price
+                    dismiss_modal(page)
+
+                    price_zar = extract_price(page)
 
                     if price_zar:
                         prev      = get_previous_price(product["id"], branch["city"])
