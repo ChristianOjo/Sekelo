@@ -96,17 +96,14 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 def select_store(page, branch_name):
     """Select branch by clicking its name directly in the store list."""
     try:
-        # Open modal if not already open
         modal = page.query_selector("#storeSelectorModal.in")
         if not modal:
             page.click(".store-change__link-text", timeout=5000)
             time.sleep(2)
 
-        # Wait for store list to load
         page.wait_for_selector(".store-list", timeout=8000)
         time.sleep(1)
 
-        # Find store item containing the branch name text
         stores = page.query_selector_all(".store-list li, .store-list .store-item")
         search_term = branch_name.split("|")[0].strip().lower()
         for store in stores:
@@ -125,16 +122,35 @@ def select_store(page, branch_name):
         return False
 
 
-def extract_price(page):
+def dismiss_modal(page):
+    """Force close any store selector modal via JavaScript."""
     try:
+        page.evaluate("""
+            var modal = document.getElementById('storeSelectorModal');
+            if (modal) {
+                modal.classList.remove('in', 'show');
+                modal.style.display = 'none';
+            }
+            var backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(function(b) { b.remove(); });
+            document.body.classList.remove('modal-open');
+        """)
+    except Exception:
+        pass
+
+
+def extract_price(page):
+    """Wait for price element then extract it."""
+    try:
+        # Wait up to 8 seconds for price to appear
+        page.wait_for_selector("span.current-price-value", timeout=8000)
         el = page.query_selector("span.current-price-value")
         if el:
             content = el.get_attribute("content")
             if content:
                 return float(content)
         return None
-    except Exception as e:
-        print(f"  ⚠ Price extraction failed: {e}")
+    except Exception:
         return None
 
 # ── SCRAPE ───────────────────────────────────────────────────────
@@ -151,12 +167,11 @@ def scrape():
         for branch in BRANCHES:
             print(f"📍 {branch['name']} ({branch['city']})")
 
-            # Fresh context per branch so store cookie persists across products
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )
 
-            # Select store once on a setup page
+            # Select store once — cookie persists for all product pages
             setup_page = context.new_page()
             try:
                 setup_page.goto(PRODUCTS[0]["url"], timeout=30000, wait_until="domcontentloaded")
@@ -167,13 +182,17 @@ def scrape():
             finally:
                 setup_page.close()
 
-            # Scrape each product — store is now set in context cookies
+            # Scrape each product
             for product in PRODUCTS:
                 page = context.new_page()
                 try:
                     print(f"  → {product['label']}")
                     page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
-                    time.sleep(3)
+                    time.sleep(4)
+
+                    # Dismiss modal in case it opened on this page
+                    dismiss_modal(page)
+                    time.sleep(1)
 
                     price_zar = extract_price(page)
 
