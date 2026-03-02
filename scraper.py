@@ -151,14 +151,11 @@ def scrape():
                 try:
                     print(f"  → {product['label']}")
                     page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
-                    time.sleep(2)
+time.sleep(3)
+dismiss_modal(page)
+time.sleep(1)
 
-                    select_branch(page, branch["search"])
-
-                    page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
-                    time.sleep(2)
-
-                    price_zar = extract_price(page)
+price_zar = extract_price(page)
 
                     if price_zar:
                         prev      = get_previous_price(product["id"], branch["city"])
