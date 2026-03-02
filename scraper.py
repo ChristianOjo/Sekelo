@@ -18,7 +18,6 @@ HEADERS = {
     "Prefer":        "return=minimal"
 }
 
-# ── CONFIG ──────────────────────────────────────────────────────
 BORDER_PREMIUM = 0.20
 ZAR_TO_SZL     = 1.0
 
@@ -49,8 +48,6 @@ PRODUCTS = [
         "url":   "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140",
     },
 ]
-
-# ── SUPABASE ────────────────────────────────────────────────────
 
 def get_previous_price(material_id, city):
     res = requests.get(
@@ -88,22 +85,17 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
     if res.status_code in (200, 201):
         return price_szl
     else:
-        print(f"  ✗ Supabase insert failed: {res.status_code} {res.text}")
+        print(f"  X Supabase insert failed: {res.status_code} {res.text}")
         return None
 
-# ── BROWSER ─────────────────────────────────────────────────────
 
-def select_store(page, branch_name):
-    """Select branch by clicking its name directly in the store list."""
+def select_store_if_needed(page, branch_name):
     try:
         modal = page.query_selector("#storeSelectorModal.in")
         if not modal:
-            page.click(".store-change__link-text", timeout=5000)
-            time.sleep(2)
-
+            return True
         page.wait_for_selector(".store-list", timeout=8000)
         time.sleep(1)
-
         stores = page.query_selector_all(".store-list li, .store-list .store-item")
         search_term = branch_name.split("|")[0].strip().lower()
         for store in stores:
@@ -111,38 +103,17 @@ def select_store(page, branch_name):
             if search_term in text.lower():
                 store.click()
                 time.sleep(3)
-                print(f"     ✓ Store selected: {branch_name}")
+                print(f"     Store selected: {branch_name}")
                 return True
-
-        print(f"  ⚠ Branch '{branch_name}' not found in store list")
+        print(f"  Branch not found in store list: {branch_name}")
         return False
-
     except Exception as e:
-        print(f"  ⚠ Store selection failed: {e}")
+        print(f"  Store selection failed: {e}")
         return False
-
-
-def dismiss_modal(page):
-    """Force close any store selector modal via JavaScript."""
-    try:
-        page.evaluate("""
-            var modal = document.getElementById('storeSelectorModal');
-            if (modal) {
-                modal.classList.remove('in', 'show');
-                modal.style.display = 'none';
-            }
-            var backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(function(b) { b.remove(); });
-            document.body.classList.remove('modal-open');
-        """)
-    except Exception:
-        pass
 
 
 def extract_price(page):
-    """Wait for price element then extract it."""
     try:
-        # Wait up to 8 seconds for price to appear
         page.wait_for_selector("span.current-price-value", timeout=8000)
         el = page.query_selector("span.current-price-value")
         if el:
@@ -153,7 +124,6 @@ def extract_price(page):
     except Exception:
         return None
 
-# ── SCRAPE ───────────────────────────────────────────────────────
 
 def scrape():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -165,35 +135,18 @@ def scrape():
         browser = p.chromium.launch(headless=True)
 
         for branch in BRANCHES:
-            print(f"📍 {branch['name']} ({branch['city']})")
+            print(f"  {branch['name']} ({branch['city']})")
 
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            )
-
-            # Select store once — cookie persists for all product pages
-            setup_page = context.new_page()
-            try:
-                setup_page.goto(PRODUCTS[0]["url"], timeout=30000, wait_until="domcontentloaded")
-                time.sleep(3)
-                select_store(setup_page, branch["name"])
-            except Exception as e:
-                print(f"  ⚠ Store setup failed: {e}")
-            finally:
-                setup_page.close()
-
-            # Scrape each product
             for product in PRODUCTS:
+                context = browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                )
                 page = context.new_page()
                 try:
-                    print(f"  → {product['label']}")
+                    print(f"  -> {product['label']}")
                     page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
                     time.sleep(4)
-
-                    # Dismiss modal in case it opened on this page
-                    dismiss_modal(page)
-                    time.sleep(1)
-
+                    select_store_if_needed(page, branch["name"])
                     price_zar = extract_price(page)
 
                     if price_zar:
@@ -211,23 +164,23 @@ def scrape():
                             price_zar,
                             delta_24h
                         )
-                        print(f"     ✓ R{price_zar} ZAR / E{price_szl} SZL  Δ={delta_24h}%")
+                        print(f"     R{price_zar} ZAR / E{price_szl} SZL  delta={delta_24h}%")
                     else:
-                        print(f"     ✗ No price found — skipping")
+                        print(f"     No price found — skipping")
 
                 except Exception as e:
-                    print(f"     ✗ Error: {e}")
+                    print(f"     Error: {e}")
                 finally:
                     page.close()
+                    context.close()
 
                 time.sleep(2)
 
-            context.close()
             print()
 
         browser.close()
 
-    print(f"✓ Scrape complete — data live in Supabase\n")
+    print(f"Scrape complete — data live in Supabase\n")
 
 
 if __name__ == "__main__":
