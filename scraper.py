@@ -23,7 +23,7 @@ BORDER_PREMIUM = 0.20
 ZAR_TO_SZL     = 1.0
 
 BRANCHES = [
-    {"name": "Southgate | Cashbuild",      "city": "Joburg",    "search": "Southgate Johannesburg"},
+    {"name": "Southgate | Cashbuild",      "city": "Joburg",    "search": "Southgate"},
     {"name": "Nelspruit Plaza | Cashbuild", "city": "Nelspruit", "search": "Nelspruit Plaza"},
 ]
 
@@ -93,8 +93,8 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 # ── BROWSER ─────────────────────────────────────────────────────
 
-def select_store(page, search_term):
-    """Select a branch via the store selector modal."""
+def select_store(page, branch_name):
+    """Select branch by clicking its name directly in the store list."""
     try:
         # Open modal if not already open
         modal = page.query_selector("#storeSelectorModal.in")
@@ -102,16 +102,23 @@ def select_store(page, search_term):
             page.click(".store-change__link-text", timeout=5000)
             time.sleep(2)
 
-        # Type into the address input
-        page.fill("#addressInput", search_term)
-        time.sleep(3)
+        # Wait for store list to load
+        page.wait_for_selector(".store-list", timeout=8000)
+        time.sleep(1)
 
-        # Click the first result that appears
-        page.click("a.dropdown-item.itemResultselectorMap", timeout=8000)
-        time.sleep(3)
+        # Find store item containing the branch name text
+        stores = page.query_selector_all(".store-list li, .store-list .store-item")
+        search_term = branch_name.split("|")[0].strip().lower()
+        for store in stores:
+            text = store.inner_text()
+            if search_term in text.lower():
+                store.click()
+                time.sleep(3)
+                print(f"     ✓ Store selected: {branch_name}")
+                return True
 
-        print(f"     ✓ Store selected: {search_term}")
-        return True
+        print(f"  ⚠ Branch '{branch_name}' not found in store list")
+        return False
 
     except Exception as e:
         print(f"  ⚠ Store selection failed: {e}")
@@ -144,23 +151,23 @@ def scrape():
         for branch in BRANCHES:
             print(f"📍 {branch['name']} ({branch['city']})")
 
-            # Fresh context per branch so store selection persists across products
+            # Fresh context per branch so store cookie persists across products
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )
 
-            # Select store once using the first product page
+            # Select store once on a setup page
             setup_page = context.new_page()
             try:
                 setup_page.goto(PRODUCTS[0]["url"], timeout=30000, wait_until="domcontentloaded")
                 time.sleep(3)
-                select_store(setup_page, branch["search"])
+                select_store(setup_page, branch["name"])
             except Exception as e:
                 print(f"  ⚠ Store setup failed: {e}")
             finally:
                 setup_page.close()
 
-            # Now scrape each product — store is set in the context cookies
+            # Scrape each product — store is now set in context cookies
             for product in PRODUCTS:
                 page = context.new_page()
                 try:
