@@ -1,6 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper — Sequential Precision Build
+Cashbuild Scraper — Final Sequential Build
 """
 
 import time
@@ -92,61 +92,51 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 # ── BROWSER ─────────────────────────────────────────────────────
 
 def bake_store_cookie(page, branch_name, first_product_url):
-    """
-    Load first product page, select store from modal,
-    wait for modal to be fully detached from DOM,
-    then re-navigate to confirm cookie is baked.
-    """
+    """Load product page, select store, wait for modal detach, re-navigate."""
     search_term = branch_name.split("|")[0].strip().lower()
 
-    # Step 1: Load page with networkidle — waits for all background JS
-    print(f"  [setup] Loading page for store selection...")
+    print(f"  [setup] Loading for store selection...")
     page.goto(first_product_url, wait_until="networkidle", timeout=30000)
 
-    # Step 2: Wait for store list to appear
     try:
         page.wait_for_selector(".store-list", timeout=10000)
     except Exception:
-        print(f"  [setup] Store list not found — modal may not have opened")
+        print(f"  [setup] No store list found")
         return
 
     time.sleep(1)
 
-    # Step 3: Find and click the correct branch
     stores = page.query_selector_all(".store-list li, .store-list .store-item")
     clicked = False
     for store in stores:
         if search_term in store.inner_text().lower():
             store.click()
             clicked = True
-            print(f"  [setup] Clicked: {branch_name}")
+            print(f"  [setup] Clicked store: {branch_name}")
             break
 
     if not clicked:
-        print(f"  [setup] Branch not found in list: {search_term}")
+        print(f"  [setup] Branch not found: {search_term}")
         return
 
-    # Step 4: Wait for modal to be fully hidden/detached from DOM
+    # Wait for modal to be fully detached from DOM
     try:
         page.wait_for_selector("#storeSelectorModal", state="hidden", timeout=10000)
         print(f"  [setup] Modal detached")
     except Exception:
-        # If wait_for_selector hidden fails, give it time
         time.sleep(4)
 
-    # Step 5: Re-navigate to same URL — forces server to render price with store cookie
-    print(f"  [setup] Re-navigating to bake cookie...")
+    # Re-navigate to bake the cookie
     page.goto(first_product_url, wait_until="networkidle", timeout=30000)
-    print(f"  [setup] Store cookie baked: {branch_name}")
+    print(f"  [setup] Cookie baked: {branch_name}")
 
 
 def check_and_reselect(page, branch_name):
-    """If modal reappeared on a product page, re-select the store."""
+    """Re-select store if modal reappeared."""
     modal = page.query_selector("#storeSelectorModal.in")
     if not modal:
         return
-
-    print(f"  [reselect] Modal reappeared — re-selecting")
+    print(f"  [reselect] Modal reappeared")
     search_term = branch_name.split("|")[0].strip().lower()
     try:
         page.wait_for_selector(".store-list", timeout=8000)
@@ -155,36 +145,38 @@ def check_and_reselect(page, branch_name):
             if search_term in store.inner_text().lower():
                 store.click()
                 page.wait_for_selector("#storeSelectorModal", state="hidden", timeout=8000)
+                print(f"  [reselect] Done")
                 break
     except Exception as e:
         print(f"  [reselect] Failed: {e}")
 
 
-def extract_price(page):
+def extract_price(page, expected_url):
     """
-    Wait for the price element to contain an actual Rand value (not empty/placeholder).
-    This handles AJAX-loaded regional prices for cement and blocks.
+    Three-point check:
+    1. Verify we are on the correct URL
+    2. Wait for price element with non-zero content attribute
+    3. Return the float value
     """
-    price = None
     try:
-        # Wait until the element exists AND contains 'R' — confirms AJAX price has loaded
-        page.wait_for_selector("span.current-price-value:has-text('R')", timeout=10000)
+        # Point 1: Confirm the page URL matches what we navigated to
+        page.wait_for_url(expected_url, timeout=10000)
+
+        # Point 2: Wait for content attribute to be present and non-zero
+        page.wait_for_selector(
+            "span.current-price-value[content]:not([content='0'])",
+            timeout=12000
+        )
+
+        # Point 3: Read the stable content attribute
         el = page.query_selector("span.current-price-value")
         if el:
-            content = el.get_attribute("content")
-            if content and content.strip() and float(content) > 0:
-                price = float(content)
+            val = el.get_attribute("content")
+            if val and float(val) > 0:
+                return float(val)
     except Exception:
-        # Fallback: try content attribute directly
-        try:
-            el = page.query_selector("span.current-price-value")
-            if el:
-                content = el.get_attribute("content")
-                if content and content.strip() and float(content) > 0:
-                    price = float(content)
-        except Exception:
-            price = None
-    return price
+        pass
+    return None
 
 # ── SCRAPE ───────────────────────────────────────────────────────
 
@@ -197,51 +189,48 @@ def scrape():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
 
-        # SEQUENTIAL: one branch at a time, fully complete before next
         for branch in BRANCHES:
             print(f"  {branch['name']} ({branch['city']})")
 
-            # One context, one page per branch — no parallel execution
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )
             page = context.new_page()
 
-            # Bake store cookie on this single page object
+            # Bake store cookie — one page, one context, stays alive for all products
             bake_store_cookie(page, branch["name"], PRODUCTS[0]["url"])
 
-            # SEQUENTIAL: one product at a time on the SAME page object
             for product in PRODUCTS:
-                price_zar = None  # explicit reset each iteration
+                current_price = None  # reset local state
 
                 try:
                     print(f"  -> {product['label']}")
 
-                    # Navigate — networkidle waits for all AJAX to settle
+                    # Navigate — networkidle waits for all AJAX
                     page.goto(product["url"], wait_until="networkidle", timeout=30000)
 
-                    # Check if modal reappeared and re-select if needed
+                    # Re-select if modal reappeared
                     check_and_reselect(page, branch["name"])
 
-                    # Extract price — waits for actual value to load
-                    price_zar = extract_price(page)
+                    # Three-point verified extraction
+                    current_price = extract_price(page, product["url"])
 
-                    if price_zar:
+                    if current_price:
                         prev = get_previous_price(product["id"], branch["city"])
                         delta_24h = None
                         if prev and prev.get("price_zar"):
                             delta_24h = round(
-                                ((price_zar - prev["price_zar"]) / prev["price_zar"]) * 100, 2
+                                ((current_price - prev["price_zar"]) / prev["price_zar"]) * 100, 2
                             )
                         price_szl = push_price(
                             product["id"],
                             product["label"],
                             branch["name"],
                             branch["city"],
-                            price_zar,
+                            current_price,
                             delta_24h
                         )
-                        print(f"     R{price_zar} ZAR / E{price_szl} SZL  delta={delta_24h}%")
+                        print(f"     R{current_price} ZAR / E{price_szl} SZL  delta={delta_24h}%")
                     else:
                         print(f"     No price found — skipping")
 
