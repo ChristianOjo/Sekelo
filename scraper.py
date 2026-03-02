@@ -29,7 +29,7 @@ PRODUCTS = [
     {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 20},
     {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 5},
     {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 20},
+    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 25},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -61,6 +61,38 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 # ── BROWSER ─────────────────────────────────────────────────────
 
+def dismiss_modal(page):
+    """Force dismiss the store selector modal if present."""
+    modal = page.query_selector("#storeSelectorModal")
+    if modal:
+        print("  [modal] Dismissing modal...")
+        # Try clicking the backdrop first
+        backdrop = page.query_selector("#storeSelectorModal .modal-backdrop")
+        if backdrop:
+            backdrop.click(force=True)
+            page.wait_for_timeout(2000)
+        
+        # Wait for modal to be hidden (display: none or removed)
+        for attempt in range(20):
+            modal = page.query_selector("#storeSelectorModal")
+            if modal is None:
+                print("  [modal] Modal removed from DOM")
+                return True
+            
+            # Check if truly hidden
+            is_hidden = modal.is_hidden()
+            display = modal.get_attribute("style") or ""
+            if is_hidden or "display: none" in display:
+                print("  [modal] Modal hidden")
+                return True
+            
+            page.wait_for_timeout(500)
+        
+        print("  [modal] Warning: Modal may still be visible")
+        return False
+    return True
+
+
 def bake_store_cookie(page, branch_name, search_term, start_url):
     """Sets the store context and waits for the redirect to finish."""
     print(f"  [setup] Baking cookie for: {branch_name}")
@@ -73,9 +105,9 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
         print("  [setup] Store modal detected")
     except Exception:
         print("  [setup] No modal found, may already have cookie")
-        # Still reload to ensure fresh state
         page.reload(wait_until="networkidle", timeout=30000)
         page.wait_for_timeout(3000)
+        dismiss_modal(page)
         return True
     
     try:
@@ -107,27 +139,21 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
                 print("  [setup] Store clicked")
                 
                 # Wait for modal to close
-                print("  [setup] Waiting for modal to close...")
-                for attempt in range(30):
-                    modal = page.query_selector("#storeSelectorModal")
-                    if modal is None:
-                        print("  [setup] Modal closed successfully")
-                        break
-                    modal_class = modal.get_attribute("class") or ""
-                    if "fade" in modal_class and "in" not in modal_class:
-                        print("  [setup] Modal is fading out")
-                        break
-                    page.wait_for_timeout(1000)
-                else:
-                    print("  [setup] Warning: Modal may still be open, continuing anyway")
+                page.wait_for_timeout(3000)
+                
+                # CRITICAL: Force dismiss modal
+                dismiss_modal(page)
                 
                 page.wait_for_load_state("networkidle", timeout=15000)
                 page.wait_for_timeout(2000)
                 
-                # CRITICAL FIX: Reload page after store selection to ensure regional prices load
+                # Reload page to ensure regional prices load
                 print("  [setup] Reloading page to load regional prices...")
                 page.reload(wait_until="networkidle", timeout=30000)
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(5000)
+                
+                # Final modal check
+                dismiss_modal(page)
                 
                 print(f"  [setup] Cookie baked: {branch_name}")
                 return True
@@ -143,14 +169,15 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
 def extract_price_safe(page, expected_url, ajax_wait=10, max_retries=3):
     """Extract price with multiple selectors and retries."""
     
-    # Multiple possible price selectors for different product types
     price_selectors = [
         "span.current-price-value",
         "[data-testid='product-price']",
         ".product-price .price",
         ".price-display",
         "span.price",
-        "[class*='price']"
+        "[class*='price']",
+        ".product-single__price",
+        "span.money"
     ]
     
     for retry in range(max_retries):
@@ -162,40 +189,51 @@ def extract_price_safe(page, expected_url, ajax_wait=10, max_retries=3):
             # Wait for AJAX to fire
             page.wait_for_timeout(ajax_wait * 1000)
             
-            # Debug: check page state
+            # Check modal status
             modal = page.query_selector("#storeSelectorModal")
             if modal:
+                is_hidden = modal.is_hidden()
                 modal_class = modal.get_attribute("class") or ""
-                print(f"  [debug] Modal still present: class='{modal_class}'")
+                print(f"  [debug] Modal present: class='{modal_class}' hidden={is_hidden}")
+            else:
+                print("  [debug] Modal not in DOM")
             
             # Try each selector
             for selector in price_selectors:
-                el = page.query_selector(selector)
-                if el:
-                    content_val = el.get_attribute("content")
-                    text_val = el.inner_text().strip()
-                    print(f"  [debug] Selector '{selector}': content='{content_val}' text='{text_val}'")
-                    
-                    # Try content attribute first
-                    if content_val:
-                        try:
-                            price = float(content_val)
-                            if price > 0:
-                                print(f"  [extract] Price found via {selector}: {price}")
-                                return price
-                        except ValueError:
-                            pass
-                    
-                    # Try text content
-                    if text_val:
-                        text_val = text_val.replace("R", "").replace(",", "").strip()
-                        try:
-                            price = float(text_val)
-                            if price > 0:
-                                print(f"  [extract] Price found via {selector}: {price}")
-                                return price
-                        except ValueError:
-                            pass
+                try:
+                    el = page.query_selector(selector)
+                    if el:
+                        # Check if element is visible
+                        is_visible = el.is_visible()
+                        if not is_visible:
+                            continue
+                        
+                        content_val = el.get_attribute("content")
+                        text_val = el.inner_text().strip()
+                        print(f"  [debug] Selector '{selector}': content='{content_val}' text='{text_val}' visible={is_visible}")
+                        
+                        # Try content attribute first
+                        if content_val:
+                            try:
+                                price = float(content_val)
+                                if price > 0:
+                                    print(f"  [extract] Price found via {selector}: {price}")
+                                    return price
+                            except ValueError:
+                                pass
+                        
+                        # Try text content
+                        if text_val:
+                            text_val = text_val.replace("R", "").replace(",", "").strip()
+                            try:
+                                price = float(text_val)
+                                if price > 0:
+                                    print(f"  [extract] Price found via {selector}: {price}")
+                                    return price
+                            except ValueError:
+                                pass
+                except Exception:
+                    continue
             
             print("  [extract] No valid price yet, will retry...")
             if retry < max_retries - 1:
