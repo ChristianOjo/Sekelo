@@ -1,13 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
 Cashbuild Scraper
-
-Pulls Big 5 material prices from:
-  - Southgate | Cashbuild (Joburg)
-  - Nelspruit Plaza | Cashbuild (Nelspruit)
-
-Pushes results directly to Supabase.
-Run manually or via Railway cron every 24 hours.
 """
 
 import time
@@ -25,9 +18,9 @@ HEADERS = {
     "Prefer":        "return=minimal"
 }
 
-# ── SCRAPER CONFIG ──────────────────────────────────────────────
-BORDER_PREMIUM = 0.20  # 20% SZ landed cost over SA shelf price
-ZAR_TO_SZL     = 1.0   # Pegged 1:1
+# ── CONFIG ──────────────────────────────────────────────────────
+BORDER_PREMIUM = 0.20
+ZAR_TO_SZL     = 1.0
 
 BRANCHES = [
     {"name": "Southgate | Cashbuild",      "city": "Joburg",    "search": "Southgate"},
@@ -57,10 +50,9 @@ PRODUCTS = [
     },
 ]
 
-# ── SUPABASE HELPERS ────────────────────────────────────────────
+# ── SUPABASE ────────────────────────────────────────────────────
 
 def get_previous_price(material_id, city):
-    """Fetch the most recent price for delta calculation."""
     res = requests.get(
         f"{SUPABASE_URL}/rest/v1/prices",
         headers=HEADERS,
@@ -77,7 +69,6 @@ def get_previous_price(material_id, city):
 
 
 def push_price(material_id, material, branch, city, price_zar, delta_24h):
-    """Insert a new price row into Supabase."""
     price_szl = round(price_zar * ZAR_TO_SZL * (1 + BORDER_PREMIUM), 2)
     payload = {
         "material_id": material_id,
@@ -100,10 +91,9 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
         print(f"  ✗ Supabase insert failed: {res.status_code} {res.text}")
         return None
 
-# ── BROWSER HELPERS ─────────────────────────────────────────────
+# ── BROWSER ─────────────────────────────────────────────────────
 
 def dismiss_modal(page):
-    """Force-close any open store selector modal via JavaScript."""
     try:
         page.evaluate("""
             var modal = document.getElementById('storeSelectorModal');
@@ -121,7 +111,6 @@ def dismiss_modal(page):
 
 
 def extract_price(page):
-    """Extract price from the current product page."""
     try:
         el = page.query_selector("span.current-price-value")
         if el:
@@ -133,11 +122,27 @@ def extract_price(page):
         print(f"  ⚠ Price extraction failed: {e}")
         return None
 
-# ── MAIN SCRAPE ─────────────────────────────────────────────────
+
+def debug_page(page, product_id):
+    if product_id in ("cement", "bricks"):
+        try:
+            title = page.title()
+            el = page.query_selector("span.current-price-value")
+            print(f"     [debug] title: {title}")
+            print(f"     [debug] price el found: {el is not None}")
+            if el:
+                print(f"     [debug] content attr: {el.get_attribute('content')}")
+            else:
+                # Check if store gate is showing
+                gate = page.query_selector(".store-selector, #storeSelectorModal")
+                print(f"     [debug] store gate visible: {gate is not None}")
+        except Exception as e:
+            print(f"     [debug] error: {e}")
+
+# ── SCRAPE ───────────────────────────────────────────────────────
 
 def scrape():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
     print(f"\n{'─'*55}")
     print(f"  Sekelo Scraper — {timestamp}")
     print(f"{'─'*55}\n")
@@ -157,30 +162,17 @@ def scrape():
                     print(f"  → {product['label']}")
                     page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
                     time.sleep(3)
-
-                    # Dismiss modal before extracting price
-dismiss_modal(page)
-
-# Debug — log page title and price HTML for cement only
-if product["id"] == "cement":
-    title = page.title()
-    price_el = page.query_selector("span.current-price-value")
-    print(f"     [debug] page title: {title}")
-    print(f"     [debug] price element found: {price_el is not None}")
-    if price_el:
-        print(f"     [debug] price content attr: {price_el.get_attribute('content')}")
-        print(f"     [debug] price inner text: {price_el.inner_text()[:50]}")
-
-price_zar = extract_price(page)
+                    dismiss_modal(page)
+                    debug_page(page, product["id"])
+                    price_zar = extract_price(page)
 
                     if price_zar:
-                        prev      = get_previous_price(product["id"], branch["city"])
+                        prev = get_previous_price(product["id"], branch["city"])
                         delta_24h = None
                         if prev and prev.get("price_zar"):
                             delta_24h = round(
                                 ((price_zar - prev["price_zar"]) / prev["price_zar"]) * 100, 2
                             )
-
                         price_szl = push_price(
                             product["id"],
                             product["label"],
@@ -189,7 +181,6 @@ price_zar = extract_price(page)
                             price_zar,
                             delta_24h
                         )
-
                         print(f"     ✓ R{price_zar} ZAR / E{price_szl} SZL  Δ={delta_24h}%")
                     else:
                         print(f"     ✗ No price found — skipping")
