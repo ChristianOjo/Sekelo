@@ -26,10 +26,10 @@ BRANCHES = [
 ]
 
 PRODUCTS = [
-    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg"},
-    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa"},
-    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m"},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140"},
+    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 20},
+    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 5},
+    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 5},
+    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 20},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -65,11 +65,9 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
     """Sets the store context and waits for the redirect to finish."""
     print(f"  [setup] Baking cookie for: {branch_name}")
     
-    # Navigate to trigger the store selector modal
     page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(2000)
     
-    # Wait for modal to appear
     try:
         page.wait_for_selector("#storeSelectorModal", timeout=15000)
         print("  [setup] Store modal detected")
@@ -77,7 +75,6 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
         print("  [setup] No modal found, may already have cookie")
         return True
     
-    # Wait for store list to populate
     try:
         page.wait_for_selector(".store-list .store-item", timeout=15000)
         page.wait_for_timeout(2000)
@@ -85,7 +82,6 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
         print("  [setup] Store list not found")
         return False
     
-    # Get all store elements
     stores = page.query_selector_all(".store-list .store-item")
     print(f"  [setup] Found {len(stores)} stores")
     
@@ -93,7 +89,6 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
         print("  [setup] No stores found")
         return False
     
-    # Search for matching store
     search_lower = search_term.lower().strip()
     for i, store in enumerate(stores):
         try:
@@ -101,16 +96,14 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
             if search_lower in store_text:
                 print(f"  [setup] Match found at index {i}")
                 
-                # Scroll element into view
                 store.scroll_into_view_if_needed(timeout=5000)
                 page.wait_for_timeout(500)
                 
-                # Wait for element to be stable (not animating), then click
                 store.wait_for_element_state("stable", timeout=10000)
                 store.click(force=True)
                 print("  [setup] Store clicked")
                 
-                # Wait for modal to close with polling
+                # Wait for modal to close
                 print("  [setup] Waiting for modal to close...")
                 for attempt in range(30):
                     modal = page.query_selector("#storeSelectorModal")
@@ -138,47 +131,55 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
     return False
 
 
-def extract_price_safe(page, expected_url):
-    """Three-point check: correct URL, non-zero content, return float."""
-    try:
-        page.wait_for_url(expected_url, timeout=10000)
-        page.wait_for_timeout(2000)
-        
-        # Wait for price to be non-zero (AJAX load)
+def extract_price_safe(page, expected_url, ajax_wait=10, max_retries=3):
+    """Extract price with retries and extended AJAX wait for cement/blocks."""
+    
+    for retry in range(max_retries):
         try:
-            page.wait_for_selector(
-                "span.current-price-value[content]:not([content='0'])",
-                timeout=15000
-            )
-        except Exception:
-            print("  [extract] Price content attribute not ready, trying text fallback")
-        
-        el = page.query_selector("span.current-price-value")
-        if el:
-            val = el.get_attribute("content")
-            if val:
-                try:
-                    price = float(val)
-                    if price > 0:
-                        return price
-                except ValueError:
-                    pass
+            print(f"  [extract] Attempt {retry + 1}/{max_retries}")
             
-            text = el.inner_text().strip()
-            if text:
-                text = text.replace("R", "").replace(",", "").strip()
-                try:
-                    price = float(text)
-                    if price > 0:
-                        return price
-                except ValueError:
-                    pass
-        
-        print("  [extract] No valid price found")
+            page.wait_for_url(expected_url, timeout=10000)
+            
+            # Wait for AJAX to fire (longer for cement/blocks)
+            page.wait_for_timeout(ajax_wait * 1000)
+            
+            # Debug: check what's in the price element
+            el = page.query_selector("span.current-price-value")
+            if el:
+                content_val = el.get_attribute("content")
+                text_val = el.inner_text().strip()
+                print(f"  [debug] content='{content_val}' text='{text_val}'")
+                
+                # Try content attribute first
+                if content_val:
+                    try:
+                        price = float(content_val)
+                        if price > 0:
+                            print(f"  [extract] Price found via content: {price}")
+                            return price
+                    except ValueError:
+                        pass
+                
+                # Try text content
+                if text_val:
+                    text_val = text_val.replace("R", "").replace(",", "").strip()
+                    try:
+                        price = float(text_val)
+                        if price > 0:
+                            print(f"  [extract] Price found via text: {price}")
+                            return price
+                    except ValueError:
+                        pass
+            
+            print("  [extract] No valid price yet, will retry...")
+            page.wait_for_timeout(2000)  # Wait before retry
                     
-    except Exception as e:
-        print(f"  [extract] Error: {e}")
-        pass
+        except Exception as e:
+            print(f"  [extract] Error: {e}")
+            if retry < max_retries - 1:
+                page.wait_for_timeout(3000)
+    
+    print("  [extract] All retries exhausted")
     return None
 
 # ── SCRAPE ───────────────────────────────────────────────────────
@@ -204,13 +205,16 @@ def scrape():
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
                 page.goto(product["url"], wait_until="domcontentloaded", timeout=30000)
-                page.wait_for_timeout(2000)
-
+                
+                # Use product-specific AJAX wait time
+                ajax_wait = product.get("ajax_wait", 10)
+                
+                # Check if modal reappeared
                 if page.query_selector("#storeSelectorModal"):
                     print("  [warn] Modal reappeared, re-baking cookie")
                     bake_store_cookie(page, branch["name"], branch["search"], product["url"])
 
-                price_zar = extract_price_safe(page, product["url"])
+                price_zar = extract_price_safe(page, product["url"], ajax_wait=ajax_wait)
 
                 if price_zar:
                     prev = get_previous_price(product["id"], branch["city"])
