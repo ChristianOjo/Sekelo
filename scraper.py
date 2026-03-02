@@ -1,6 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper - Final Production Version
+Cashbuild Scraper - Production v1.0
 """
 
 import time
@@ -27,10 +27,10 @@ BRANCHES = [
 ]
 
 PRODUCTS = [
-    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 25, "min_price": 80, "max_price": 150, "needs_fresh_store": True},
-    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_fresh_store": False},
-    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300, "needs_fresh_store": False},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 35, "min_price": 100, "max_price": 200, "needs_fresh_store": True},
+    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 20, "min_price": 80, "max_price": 150},
+    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200},
+    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300},
+    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 20, "min_price": 100, "max_price": 200},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -50,12 +50,16 @@ def get_previous_price(material_id, city):
         return None
 
 
-def push_price(material_id, material, branch, city, price_zar, delta_24h):
-    price_szl = round(price_zar * ZAR_TO_SZL * (1 + BORDER_PREMIUM), 2)
+def push_price(material_id, material, branch, city, price_zar, delta_24h, available=True):
+    if price_zar:
+        price_szl = round(price_zar * ZAR_TO_SZL * (1 + BORDER_PREMIUM), 2)
+    else:
+        price_szl = None
+    
     payload = {
         "material_id": material_id, "material": material, "branch": branch,
         "city": city, "price_zar": price_zar, "price_szl": price_szl,
-        "delta_24h": delta_24h, "currency": "ZAR"
+        "delta_24h": delta_24h, "currency": "ZAR", "available": available
     }
     requests.post(f"{SUPABASE_URL}/rest/v1/prices", headers=HEADERS, json=payload)
     return price_szl
@@ -63,7 +67,7 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 # ── BROWSER ─────────────────────────────────────────────────────
 
 def dismiss_modal(page):
-    """Aggressively dismiss the store selector modal."""
+    """Dismiss store selector modal."""
     for attempt in range(3):
         modal = page.query_selector("#storeSelectorModal")
         if not modal:
@@ -76,13 +80,6 @@ def dismiss_modal(page):
             except Exception:
                 pass
         
-        close_btn = page.query_selector("#storeSelectorModal .close, #storeSelectorModal button.close")
-        if close_btn:
-            try:
-                close_btn.click(force=True)
-            except Exception:
-                pass
-        
         for i in range(20):
             modal = page.query_selector("#storeSelectorModal")
             if not modal or modal.is_hidden():
@@ -92,8 +89,18 @@ def dismiss_modal(page):
     return False
 
 
-def select_store(page, search_term):
-    """Select store on current page."""
+def bake_store_cookie(page, branch_name, search_term, start_url):
+    """Select store ONCE per branch."""
+    print(f"  [setup] Baking cookie for: {branch_name}")
+    
+    page.goto(start_url, wait_until="networkidle", timeout=30000)
+    page.wait_for_timeout(5000)
+    
+    modal = page.query_selector("#storeSelectorModal")
+    if not modal:
+        print("  [setup] No modal, cookie already set")
+        return True
+    
     try:
         page.wait_for_selector(".store-list .store-item", timeout=15000)
         page.wait_for_timeout(3000)
@@ -119,117 +126,57 @@ def select_store(page, search_term):
                 except Exception:
                     pass
                 page.wait_for_timeout(5000)
+                print(f"  [setup] Cookie baked: {branch_name}")
                 return True
         except Exception:
             continue
-    
-    return False
-
-
-def bake_store_cookie(page, branch_name, search_term, start_url):
-    """Select store ONCE per branch for products that support it."""
-    print(f"  [setup] Baking cookie for: {branch_name}")
-    
-    page.goto(start_url, wait_until="networkidle", timeout=30000)
-    page.wait_for_timeout(5000)
-    
-    modal = page.query_selector("#storeSelectorModal")
-    if not modal:
-        print("  [setup] No modal, cookie already set")
-        return True
-    
-    if select_store(page, search_term):
-        print(f"  [setup] Cookie baked: {branch_name}")
-        return True
     
     print(f"  [setup] Branch not found: {search_term}")
     return False
 
 
 def extract_price_safe(page, product, max_retries=3):
-    """Extract price with product-specific handling."""
+    """Extract price with strict validation."""
     
-    # Extended selectors for blocks
-    if product["id"] == "bricks":
-        price_selectors = [
-            "span.current-price-value",
-            ".product-single__price .money",
-            ".product-price .money",
-            "span.money",
-            "[data-price]",
-            ".price",
-            ".product-single__price",
-            ".product-info .price",
-            ".product-pricing .price",
-            ".price-wrapper .price",
-            "div.price",
-            "span.price",
-            ".product-single__price",
-        ]
-    else:
-        price_selectors = [
-            "span.current-price-value",
-            ".product-single__price .money",
-            "span.money",
-            ".price",
-            ".product-price",
-        ]
+    # Primary selector only - most reliable
+    price_selectors = [
+        "span.current-price-value",
+    ]
     
     ajax_wait = product.get("ajax_wait", 10)
     min_price = product.get("min_price", 0)
     max_price = product.get("max_price", 9999)
     product_id = product.get("id", "unknown")
+    product_label = product.get("label", "Unknown")
     
     for retry in range(max_retries):
         try:
             page.wait_for_timeout(ajax_wait * 1000)
             
-            # Debug: check what's on the page
-            if retry == 0:
-                all_prices = page.query_selector_all(".price, span.money, [data-price]")
-                print(f"  [debug] {product_id}: Found {len(all_prices)} price elements on page")
-                for i, el in enumerate(all_prices[:5]):
-                    try:
-                        content = el.get_attribute("content")
-                        text = el.inner_text().strip()[:50]
-                        print(f"  [debug]   [{i}] content='{content}' text='{text}'")
-                    except Exception:
-                        pass
+            # Check for out of stock messaging
+            page_content = page.content()
+            if "inform me when" in page_content.lower() or "out of stock" in page_content.lower():
+                print(f"  [warn] {product_id}: Product appears out of stock or unavailable")
+                return None
             
             for selector in price_selectors:
                 try:
-                    els = page.query_selector_all(selector)
-                    for el in els:
-                        if not el.is_visible():
-                            continue
-                        
+                    el = page.query_selector(selector)
+                    if el and el.is_visible():
+                        # Try content attribute (most reliable)
                         content_val = el.get_attribute("content")
                         if content_val:
                             try:
                                 price = float(content_val)
                                 if min_price <= price <= max_price:
-                                    print(f"  [extract] {product_id}: R{price} via {selector} (content)")
+                                    print(f"  [extract] {product_id}: R{price} via {selector}")
                                     return price
                             except ValueError:
                                 pass
-                        
-                        text_val = el.inner_text().strip()
-                        if text_val:
-                            text_val = text_val.replace("R", "").replace(",", "").replace("each", "").strip()
-                            match = re.search(r'[\d.]+', text_val)
-                            if match:
-                                try:
-                                    price = float(match.group())
-                                    if min_price <= price <= max_price:
-                                        print(f"  [extract] {product_id}: R{price} via {selector} (text)")
-                                        return price
-                                except ValueError:
-                                    pass
                 except Exception:
                     continue
             
             if retry < max_retries - 1:
-                print(f"  [retry] {product_id}: Attempt {retry + 2}/{max_retries}")
                 page.wait_for_timeout(5000)
                     
         except Exception as e:
@@ -237,7 +184,7 @@ def extract_price_safe(page, product, max_retries=3):
             if retry < max_retries - 1:
                 page.wait_for_timeout(5000)
     
-    print(f"  [debug] {product_id}: All selectors exhausted")
+    print(f"  [debug] {product_id}: No valid price found")
     return None
 
 # ── SCRAPE ───────────────────────────────────────────────────────
@@ -255,7 +202,7 @@ def scrape():
             )
             page = context.new_page()
 
-            # Initial cookie bake (for rebar/timber)
+            # Select store ONCE per branch
             if not bake_store_cookie(page, branch["name"], branch["search"], PRODUCTS[0]["url"]):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
@@ -268,23 +215,8 @@ def scrape():
                 page.goto(product["url"], wait_until="networkidle", timeout=30000)
                 page.wait_for_timeout(5000)
                 
-                # CRITICAL: Fresh store selection for Cement/Blocks
-                if product.get("needs_fresh_store", False):
-                    print("  [setup] Fresh store selection required for this product...")
-                    modal = page.query_selector("#storeSelectorModal")
-                    if modal:
-                        select_store(page, branch["search"])
-                    else:
-                        # Force modal to appear by clicking a store-related element
-                        print("  [setup] No modal, triggering store selection...")
-                        page.reload(wait_until="domcontentloaded", timeout=30000)
-                        page.wait_for_timeout(3000)
-                        if page.query_selector("#storeSelectorModal"):
-                            select_store(page, branch["search"])
-                
-                # Dismiss any remaining modal
+                # Dismiss modal if it reappeared
                 if page.query_selector("#storeSelectorModal"):
-                    print("  [warn] Modal still present, dismissing...")
                     dismiss_modal(page)
                     page.wait_for_timeout(3000)
 
@@ -301,11 +233,17 @@ def scrape():
                     price_szl = push_price(
                         product["id"], product["label"],
                         branch["name"], branch["city"],
-                        price_zar, delta
+                        price_zar, delta, available=True
                     )
                     print(f"     ✅ SUCCESS: R{price_zar} (E{price_szl}) | Delta: {delta}%")
                 else:
-                    print("     ❌ FAILED: No price found.")
+                    # Record as unavailable
+                    push_price(
+                        product["id"], product["label"],
+                        branch["name"], branch["city"],
+                        None, None, available=False
+                    )
+                    print("     ⚠️  UNAVAILABLE: No price (out of stock or regional pricing unavailable)")
 
                 time.sleep(2)
 
