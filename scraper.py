@@ -49,6 +49,8 @@ PRODUCTS = [
     },
 ]
 
+# ── SUPABASE ────────────────────────────────────────────────────
+
 def get_previous_price(material_id, city):
     res = requests.get(
         f"{SUPABASE_URL}/rest/v1/prices",
@@ -88,42 +90,96 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
         print(f"  X Supabase insert failed: {res.status_code} {res.text}")
         return None
 
+# ── BROWSER ─────────────────────────────────────────────────────
 
-def select_store_if_needed(page, branch_name):
+def bake_store_cookie(context, branch_name, first_product_url):
+    """
+    Navigate to a product page, select the store in the modal,
+    wait for the page to fully react, then re-navigate to confirm
+    the store cookie is set in the context.
+    """
+    page = context.new_page()
     try:
+        # Step 1: Load product page — modal will appear
+        page.goto(first_product_url, timeout=30000, wait_until="domcontentloaded")
+        time.sleep(3)
+
+        # Step 2: Check if store modal is open
         modal = page.query_selector("#storeSelectorModal.in")
         if not modal:
-            return True
+            print(f"  [setup] No modal — store may already be set")
+            return
+
+        # Step 3: Find and click the correct branch in the store list
         page.wait_for_selector(".store-list", timeout=8000)
         time.sleep(1)
+
         stores = page.query_selector_all(".store-list li, .store-list .store-item")
         search_term = branch_name.split("|")[0].strip().lower()
+        clicked = False
         for store in stores:
-            text = store.inner_text()
-            if search_term in text.lower():
+            if search_term in store.inner_text().lower():
                 store.click()
-                time.sleep(3)
-                print(f"     Store selected: {branch_name}")
-                return True
-        print(f"  Branch not found in store list: {branch_name}")
-        return False
+                clicked = True
+                break
+
+        if not clicked:
+            print(f"  [setup] Branch not found: {branch_name}")
+            return
+
+        # Step 4: Wait for the page to fully react to the store selection
+        try:
+            page.wait_for_load_state("networkidle", timeout=8000)
+        except Exception:
+            time.sleep(4)
+
+        # Step 5: Re-navigate to the same URL to confirm cookie is baked
+        page.goto(first_product_url, timeout=30000, wait_until="domcontentloaded")
+        page.wait_for_load_state("networkidle", timeout=8000)
+
+        print(f"  [setup] Store cookie baked: {branch_name}")
+
     except Exception as e:
-        print(f"  Store selection failed: {e}")
-        return False
+        print(f"  [setup] Failed to bake store cookie: {e}")
+    finally:
+        page.close()
 
 
-def extract_price(page):
+def get_price(context, product_url):
+    """
+    Navigate to a product page. Store cookie is already set so
+    no modal should appear. Wait for price element and extract it.
+    """
+    page = context.new_page()
     try:
-        page.wait_for_selector("span.current-price-value", timeout=8000)
+        page.goto(product_url, timeout=30000, wait_until="domcontentloaded")
+
+        # Wait for network to settle (handles AJAX price updates for variants)
+        try:
+            page.wait_for_load_state("networkidle", timeout=8000)
+        except Exception:
+            time.sleep(4)
+
+        # Wait for price element specifically
+        try:
+            page.wait_for_selector("span.current-price-value", timeout=8000)
+        except Exception:
+            return None
+
         el = page.query_selector("span.current-price-value")
         if el:
             content = el.get_attribute("content")
             if content:
                 return float(content)
         return None
-    except Exception:
-        return None
 
+    except Exception as e:
+        print(f"  X Price extraction error: {e}")
+        return None
+    finally:
+        page.close()
+
+# ── SCRAPE ───────────────────────────────────────────────────────
 
 def scrape():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -137,17 +193,19 @@ def scrape():
         for branch in BRANCHES:
             print(f"  {branch['name']} ({branch['city']})")
 
+            # Fresh context per branch
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            )
+
+            # Bake the store cookie once into this context
+            bake_store_cookie(context, branch["name"], PRODUCTS[0]["url"])
+
+            # Now fetch each product — store is set, no modal will appear
             for product in PRODUCTS:
-                context = browser.new_context(
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                )
-                page = context.new_page()
                 try:
                     print(f"  -> {product['label']}")
-                    page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
-                    time.sleep(4)
-                    select_store_if_needed(page, branch["name"])
-                    price_zar = extract_price(page)
+                    price_zar = get_price(context, product["url"])
 
                     if price_zar:
                         prev = get_previous_price(product["id"], branch["city"])
@@ -170,12 +228,10 @@ def scrape():
 
                 except Exception as e:
                     print(f"     Error: {e}")
-                finally:
-                    page.close()
-                    context.close()
 
                 time.sleep(2)
 
+            context.close()
             print()
 
         browser.close()
