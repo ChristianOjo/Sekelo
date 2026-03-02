@@ -23,8 +23,8 @@ BORDER_PREMIUM = 0.20
 ZAR_TO_SZL     = 1.0
 
 BRANCHES = [
-    {"name": "Southgate | Cashbuild",      "city": "Joburg",    "search": "Southgate"},
-    {"name": "Nelspruit Plaza | Cashbuild", "city": "Nelspruit", "search": "Nelspruit"},
+    {"name": "Southgate | Cashbuild",      "city": "Joburg",    "search": "Southgate Johannesburg"},
+    {"name": "Nelspruit Plaza | Cashbuild", "city": "Nelspruit", "search": "Nelspruit Plaza"},
 ]
 
 PRODUCTS = [
@@ -93,21 +93,29 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h):
 
 # ── BROWSER ─────────────────────────────────────────────────────
 
-def dismiss_modal(page):
+def select_store(page, search_term):
+    """Select a branch via the store selector modal."""
     try:
-        page.evaluate("""
-            var modal = document.getElementById('storeSelectorModal');
-            if (modal) {
-                modal.classList.remove('in', 'show');
-                modal.style.display = 'none';
-            }
-            var backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(function(b) { b.remove(); });
-            document.body.classList.remove('modal-open');
-        """)
-        time.sleep(1)
+        # Open modal if not already open
+        modal = page.query_selector("#storeSelectorModal.in")
+        if not modal:
+            page.click(".store-change__link-text", timeout=5000)
+            time.sleep(2)
+
+        # Type into the address input
+        page.fill("#addressInput", search_term)
+        time.sleep(3)
+
+        # Click the first result that appears
+        page.click("a.dropdown-item.itemResultselectorMap", timeout=8000)
+        time.sleep(3)
+
+        print(f"     ✓ Store selected: {search_term}")
+        return True
+
     except Exception as e:
-        print(f"  ⚠ Modal dismiss failed: {e}")
+        print(f"  ⚠ Store selection failed: {e}")
+        return False
 
 
 def extract_price(page):
@@ -122,23 +130,6 @@ def extract_price(page):
         print(f"  ⚠ Price extraction failed: {e}")
         return None
 
-
-def debug_page(page, product_id):
-    if product_id in ("cement", "bricks"):
-        try:
-            title = page.title()
-            el = page.query_selector("span.current-price-value")
-            print(f"     [debug] title: {title}")
-            print(f"     [debug] price el found: {el is not None}")
-            if el:
-                print(f"     [debug] content attr: {el.get_attribute('content')}")
-            else:
-                # Check if store gate is showing
-                gate = page.query_selector(".store-selector, #storeSelectorModal")
-                print(f"     [debug] store gate visible: {gate is not None}")
-        except Exception as e:
-            print(f"     [debug] error: {e}")
-
 # ── SCRAPE ───────────────────────────────────────────────────────
 
 def scrape():
@@ -149,21 +140,34 @@ def scrape():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        )
 
         for branch in BRANCHES:
             print(f"📍 {branch['name']} ({branch['city']})")
 
+            # Fresh context per branch so store selection persists across products
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            )
+
+            # Select store once using the first product page
+            setup_page = context.new_page()
+            try:
+                setup_page.goto(PRODUCTS[0]["url"], timeout=30000, wait_until="domcontentloaded")
+                time.sleep(3)
+                select_store(setup_page, branch["search"])
+            except Exception as e:
+                print(f"  ⚠ Store setup failed: {e}")
+            finally:
+                setup_page.close()
+
+            # Now scrape each product — store is set in the context cookies
             for product in PRODUCTS:
                 page = context.new_page()
                 try:
                     print(f"  → {product['label']}")
                     page.goto(product["url"], timeout=30000, wait_until="domcontentloaded")
                     time.sleep(3)
-                    dismiss_modal(page)
-                    debug_page(page, product["id"])
+
                     price_zar = extract_price(page)
 
                     if price_zar:
@@ -192,9 +196,9 @@ def scrape():
 
                 time.sleep(2)
 
+            context.close()
             print()
 
-        context.close()
         browser.close()
 
     print(f"✓ Scrape complete — data live in Supabase\n")
