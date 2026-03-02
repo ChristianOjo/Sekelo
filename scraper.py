@@ -1,9 +1,10 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper - Production Ready
+Cashbuild Scraper - Final Production Version
 """
 
 import time
+import re
 import requests
 from datetime import datetime
 from playwright.sync_api import sync_playwright
@@ -26,10 +27,10 @@ BRANCHES = [
 ]
 
 PRODUCTS = [
-    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 25, "min_price": 80, "max_price": 150},
-    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200},
-    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 30, "min_price": 100, "max_price": 200},
+    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 25, "min_price": 80, "max_price": 150, "needs_fresh_store": True},
+    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_fresh_store": False},
+    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300, "needs_fresh_store": False},
+    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 35, "min_price": 100, "max_price": 200, "needs_fresh_store": True},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -68,7 +69,6 @@ def dismiss_modal(page):
         if not modal:
             return True
         
-        # Try clicking backdrop
         backdrop = page.query_selector("#storeSelectorModal .modal-backdrop")
         if backdrop:
             try:
@@ -76,7 +76,6 @@ def dismiss_modal(page):
             except Exception:
                 pass
         
-        # Try clicking close button
         close_btn = page.query_selector("#storeSelectorModal .close, #storeSelectorModal button.close")
         if close_btn:
             try:
@@ -84,7 +83,6 @@ def dismiss_modal(page):
             except Exception:
                 pass
         
-        # Wait for modal to disappear
         for i in range(20):
             modal = page.query_selector("#storeSelectorModal")
             if not modal or modal.is_hidden():
@@ -94,21 +92,8 @@ def dismiss_modal(page):
     return False
 
 
-def bake_store_cookie(page, branch_name, search_term, start_url):
-    """Select store ONCE per branch."""
-    print(f"  [setup] Baking cookie for: {branch_name}")
-    
-    # Full page load
-    page.goto(start_url, wait_until="networkidle", timeout=30000)
-    page.wait_for_timeout(5000)
-    
-    # Check for modal
-    modal = page.query_selector("#storeSelectorModal")
-    if not modal:
-        print("  [setup] No modal, cookie already set")
-        return True
-    
-    # Wait for store list
+def select_store(page, search_term):
+    """Select store on current page."""
     try:
         page.wait_for_selector(".store-list .store-item", timeout=15000)
         page.wait_for_timeout(3000)
@@ -127,24 +112,35 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
                 page.wait_for_timeout(1000)
                 store.wait_for_element_state("stable", timeout=10000)
                 store.click(force=True)
-                print("  [setup] Store clicked, waiting...")
-                
-                # Wait for modal to close
                 page.wait_for_timeout(5000)
                 dismiss_modal(page)
-                
-                # Wait for network to settle
                 try:
                     page.wait_for_load_state("networkidle", timeout=20000)
                 except Exception:
                     pass
                 page.wait_for_timeout(5000)
-                
-                print(f"  [setup] Cookie baked: {branch_name}")
                 return True
-        except Exception as e:
-            print(f"  [setup] Error: {e}")
+        except Exception:
             continue
+    
+    return False
+
+
+def bake_store_cookie(page, branch_name, search_term, start_url):
+    """Select store ONCE per branch for products that support it."""
+    print(f"  [setup] Baking cookie for: {branch_name}")
+    
+    page.goto(start_url, wait_until="networkidle", timeout=30000)
+    page.wait_for_timeout(5000)
+    
+    modal = page.query_selector("#storeSelectorModal")
+    if not modal:
+        print("  [setup] No modal, cookie already set")
+        return True
+    
+    if select_store(page, search_term):
+        print(f"  [setup] Cookie baked: {branch_name}")
+        return True
     
     print(f"  [setup] Branch not found: {search_term}")
     return False
@@ -153,9 +149,8 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
 def extract_price_safe(page, product, max_retries=3):
     """Extract price with product-specific handling."""
     
-    # Different selectors for different product types
+    # Extended selectors for blocks
     if product["id"] == "bricks":
-        # Blocks often use different templates
         price_selectors = [
             "span.current-price-value",
             ".product-single__price .money",
@@ -165,6 +160,11 @@ def extract_price_safe(page, product, max_retries=3):
             ".price",
             ".product-single__price",
             ".product-info .price",
+            ".product-pricing .price",
+            ".price-wrapper .price",
+            "div.price",
+            "span.price",
+            ".product-single__price",
         ]
     else:
         price_selectors = [
@@ -182,14 +182,19 @@ def extract_price_safe(page, product, max_retries=3):
     
     for retry in range(max_retries):
         try:
-            # Wait for AJAX
             page.wait_for_timeout(ajax_wait * 1000)
             
-            # Wait for price element to exist
-            try:
-                page.wait_for_selector("span.current-price-value, .product-single__price, .price", timeout=10000)
-            except Exception:
-                pass
+            # Debug: check what's on the page
+            if retry == 0:
+                all_prices = page.query_selector_all(".price, span.money, [data-price]")
+                print(f"  [debug] {product_id}: Found {len(all_prices)} price elements on page")
+                for i, el in enumerate(all_prices[:5]):
+                    try:
+                        content = el.get_attribute("content")
+                        text = el.inner_text().strip()[:50]
+                        print(f"  [debug]   [{i}] content='{content}' text='{text}'")
+                    except Exception:
+                        pass
             
             for selector in price_selectors:
                 try:
@@ -198,7 +203,6 @@ def extract_price_safe(page, product, max_retries=3):
                         if not el.is_visible():
                             continue
                         
-                        # Try content attribute first (most reliable)
                         content_val = el.get_attribute("content")
                         if content_val:
                             try:
@@ -209,13 +213,9 @@ def extract_price_safe(page, product, max_retries=3):
                             except ValueError:
                                 pass
                         
-                        # Try text content
                         text_val = el.inner_text().strip()
                         if text_val:
-                            # Clean up text
                             text_val = text_val.replace("R", "").replace(",", "").replace("each", "").strip()
-                            # Extract first number
-                            import re
                             match = re.search(r'[\d.]+', text_val)
                             if match:
                                 try:
@@ -255,7 +255,7 @@ def scrape():
             )
             page = context.new_page()
 
-            # Select store ONCE per branch
+            # Initial cookie bake (for rebar/timber)
             if not bake_store_cookie(page, branch["name"], branch["search"], PRODUCTS[0]["url"]):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
@@ -264,13 +264,27 @@ def scrape():
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
                 
-                # Full page load with networkidle
+                # Navigate to product page
                 page.goto(product["url"], wait_until="networkidle", timeout=30000)
                 page.wait_for_timeout(5000)
                 
-                # Dismiss modal if it reappeared
+                # CRITICAL: Fresh store selection for Cement/Blocks
+                if product.get("needs_fresh_store", False):
+                    print("  [setup] Fresh store selection required for this product...")
+                    modal = page.query_selector("#storeSelectorModal")
+                    if modal:
+                        select_store(page, branch["search"])
+                    else:
+                        # Force modal to appear by clicking a store-related element
+                        print("  [setup] No modal, triggering store selection...")
+                        page.reload(wait_until="domcontentloaded", timeout=30000)
+                        page.wait_for_timeout(3000)
+                        if page.query_selector("#storeSelectorModal"):
+                            select_store(page, branch["search"])
+                
+                # Dismiss any remaining modal
                 if page.query_selector("#storeSelectorModal"):
-                    print("  [warn] Modal reappeared, dismissing...")
+                    print("  [warn] Modal still present, dismissing...")
                     dismiss_modal(page)
                     page.wait_for_timeout(3000)
 
