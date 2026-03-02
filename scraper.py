@@ -1,6 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Cashbuild Scraper - Production Version
+Cashbuild Scraper - Final Production Version
 """
 
 import time
@@ -26,10 +26,10 @@ BRANCHES = [
 ]
 
 PRODUCTS = [
-    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 20, "min_price": 80, "max_price": 150},
-    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 5, "min_price": 100, "max_price": 200},
-    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 15, "min_price": 150, "max_price": 300},
-    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 25, "min_price": 80, "max_price": 200},
+    {"id": "cement", "label": "PPC Cement 50kg", "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg", "ajax_wait": 25, "min_price": 80, "max_price": 150},
+    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200},
+    {"id": "timber", "label": "Structural Timber S5", "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m", "ajax_wait": 20, "min_price": 180, "max_price": 300},
+    {"id": "bricks", "label": "Concrete Block 390x190x140", "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140", "ajax_wait": 30, "min_price": 100, "max_price": 200},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -67,8 +67,11 @@ def dismiss_modal(page):
     if modal:
         backdrop = page.query_selector("#storeSelectorModal .modal-backdrop")
         if backdrop:
-            backdrop.click(force=True)
-            page.wait_for_timeout(2000)
+            try:
+                backdrop.click(force=True)
+                page.wait_for_timeout(2000)
+            except Exception:
+                pass
         
         for attempt in range(20):
             modal = page.query_selector("#storeSelectorModal")
@@ -82,11 +85,11 @@ def dismiss_modal(page):
 
 
 def bake_store_cookie(page, branch_name, search_term, start_url):
-    """Sets the store context and waits for the redirect to finish."""
+    """Sets the store context once per branch."""
     print(f"  [setup] Baking cookie for: {branch_name}")
     
     page.goto(start_url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(3000)
     
     try:
         page.wait_for_selector("#storeSelectorModal", timeout=15000)
@@ -107,7 +110,7 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
     stores = page.query_selector_all(".store-list .store-item")
     
     search_lower = search_term.lower().strip()
-    for i, store in enumerate(stores):
+    for store in stores:
         try:
             store_text = store.inner_text().strip().lower()
             if search_lower in store_text:
@@ -131,64 +134,48 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
     return False
 
 
-def extract_price_safe(page, expected_url, product, max_retries=3):
-    """Extract price with validation against expected price range."""
+def extract_price_safe(page, product, max_retries=3):
+    """Extract price with strict validation."""
     
-    # Prioritized selectors - most accurate first
+    # Only use the most reliable selector
     price_selectors = [
-        "span.current-price-value",      # Primary - has content attribute
-        ".product-single__price",
-        "span.money",
-        "[data-testid='product-price']",
-        ".product-price .price",
-        ".price-display",
-        "span.price",
+        "span.current-price-value",
     ]
     
     ajax_wait = product.get("ajax_wait", 10)
     min_price = product.get("min_price", 0)
     max_price = product.get("max_price", 9999)
+    product_id = product.get("id", "unknown")
     
     for retry in range(max_retries):
         try:
-            page.wait_for_url(expected_url, timeout=10000)
             page.wait_for_timeout(ajax_wait * 1000)
             
             for selector in price_selectors:
                 try:
                     el = page.query_selector(selector)
                     if el and el.is_visible():
-                        # Try content attribute first (most reliable)
+                        # ONLY use content attribute (most reliable)
                         content_val = el.get_attribute("content")
                         if content_val:
                             try:
                                 price = float(content_val)
                                 if min_price <= price <= max_price:
-                                    print(f"  [extract] Price: R{price} via {selector}")
+                                    print(f"  [extract] {product_id}: R{price} via {selector}")
                                     return price
-                            except ValueError:
-                                pass
-                        
-                        # Fallback to text content
-                        text_val = el.inner_text().strip()
-                        if text_val:
-                            text_val = text_val.replace("R", "").replace(",", "").strip()
-                            try:
-                                price = float(text_val)
-                                if min_price <= price <= max_price:
-                                    print(f"  [extract] Price: R{price} via {selector}")
-                                    return price
+                                else:
+                                    print(f"  [warn] {product_id}: R{price} outside range [{min_price}-{max_price}]")
                             except ValueError:
                                 pass
                 except Exception:
                     continue
             
             if retry < max_retries - 1:
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(5000)
                     
         except Exception:
             if retry < max_retries - 1:
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(5000)
     
     return None
 
@@ -207,6 +194,7 @@ def scrape():
             )
             page = context.new_page()
 
+            # Bake cookie ONCE per branch
             if not bake_store_cookie(page, branch["name"], branch["search"], PRODUCTS[0]["url"]):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
@@ -214,12 +202,19 @@ def scrape():
 
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
-                page.goto(product["url"], wait_until="domcontentloaded", timeout=30000)
                 
+                # Full page load for each product
+                page.goto(product["url"], wait_until="networkidle", timeout=30000)
+                page.wait_for_timeout(3000)
+                
+                # Check if modal reappeared
                 if page.query_selector("#storeSelectorModal"):
+                    print("  [warn] Modal reappeared, re-baking cookie")
                     bake_store_cookie(page, branch["name"], branch["search"], product["url"])
+                    page.goto(product["url"], wait_until="networkidle", timeout=30000)
+                    page.wait_for_timeout(3000)
 
-                price_zar = extract_price_safe(page, product["url"], product)
+                price_zar = extract_price_safe(page, product)
 
                 if price_zar:
                     prev = get_previous_price(product["id"], branch["city"])
