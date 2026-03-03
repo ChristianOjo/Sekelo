@@ -1,6 +1,6 @@
 """
 Sekelo — Cashbuild Scraper
-Production v1.0 (Fresh Start)
+Production v1.1
 """
 
 import time
@@ -28,8 +28,14 @@ BRANCHES = [
 ]
 
 PRODUCTS = [
-    {"id": "bricks_cashbuild", "label": "Cement Brick Solid Maxi", "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi", "ajax_wait": 20, "min_price": 8, "max_price": 20, "needs_store_select": True},
-    {"id": "sandpak", "label": "Concrete Mix 40kg", "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag", "ajax_wait": 20, "min_price": 30, "max_price": 80, "needs_store_select": True},
+    # ── Original Big 4 — IDs must match dashboard queries exactly ──
+    {"id": "cement",  "label": "PPC Cement 50kg",            "url": "https://www.cashbuild.co.za/cement-yard/300426-cement-afrisam-rapo-525r-50kg",                     "ajax_wait": 25, "min_price": 80,  "max_price": 150, "needs_store_select": True},
+    {"id": "rebar",   "label": "Steel Rebar Y12",             "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa",             "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_store_select": False},
+    {"id": "timber",  "label": "Structural Timber S5",        "url": "https://www.cashbuild.co.za/timber/18160-structural-timber-sabs-untreated-50x76-60m",               "ajax_wait": 15, "min_price": 180, "max_price": 300, "needs_store_select": False},
+    {"id": "bricks",  "label": "Concrete Block 390x190x140",  "url": "https://www.cashbuild.co.za/cement-blocks/1009603-block-concrete-390-x190-x140",                   "ajax_wait": 25, "min_price": 5,   "max_price": 50,  "needs_store_select": True},
+    # ── New products ──
+    {"id": "bricks_maxi", "label": "Cement Brick Solid Maxi", "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi",               "ajax_wait": 20, "min_price": 8,   "max_price": 20,  "needs_store_select": True},
+    {"id": "concrete_mix","label": "Concrete Mix 40kg",        "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag",                                    "ajax_wait": 20, "min_price": 30,  "max_price": 80,  "needs_store_select": True},
 ]
 
 def get_previous_price(material_id, city):
@@ -65,7 +71,7 @@ def dismiss_modal(page):
         if backdrop:
             try:
                 backdrop.click(force=True)
-            except:
+            except Exception:
                 pass
         for _ in range(20):
             modal = page.query_selector("#storeSelectorModal")
@@ -78,7 +84,7 @@ def select_store(page, search_term):
     try:
         page.wait_for_selector(".store-list .store-item", timeout=10000)
         page.wait_for_timeout(2000)
-    except:
+    except Exception:
         return False
     stores = page.query_selector_all(".store-list .store-item")
     for store in stores:
@@ -91,7 +97,7 @@ def select_store(page, search_term):
                 dismiss_modal(page)
                 page.wait_for_timeout(3000)
                 return True
-        except:
+        except Exception:
             continue
     return False
 
@@ -120,7 +126,7 @@ def extract_price(page, product):
                         price = float(content)
                         if product["min_price"] <= price <= product["max_price"]:
                             return price
-                    except:
+                    except Exception:
                         pass
                 text = el.inner_text().strip().replace("R", "").replace(",", "")
                 match = re.search(r'[\d.]+', text)
@@ -129,7 +135,7 @@ def extract_price(page, product):
                         price = float(match.group())
                         if product["min_price"] <= price <= product["max_price"]:
                             return price
-                    except:
+                    except Exception:
                         pass
         page.wait_for_timeout(1000)
     return None
@@ -154,7 +160,7 @@ def scrape():
                 price = extract_price(page, product)
                 if price:
                     prev = get_previous_price(product["id"], branch["city"])
-                    delta = round(((price - prev["price_zar"]) / prev["price_zar"]) * 100, 2) if prev else None
+                    delta = round(((price - prev["price_zar"]) / prev["price_zar"]) * 100, 2) if prev and prev.get("price_zar") else None
                     push_price(product["id"], product["label"], branch["name"], branch["city"], price, delta)
                     print(f"     ✅ R{price:.2f}")
                 else:
