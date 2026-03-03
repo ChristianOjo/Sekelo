@@ -1,6 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Multi-Source Scraper — Production v3.0
+Multi-Source Scraper — Production v3.1
 
 Tracks prices from Cashbuild AND Builders.co.za for Eswatini market intelligence.
 Enables cross-source price comparison for better contractor decisions.
@@ -14,14 +14,14 @@ from playwright.sync_api import sync_playwright
 
 # ── CONFIG ─────────────────────────────────────────────────────
 
-SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co"  # ✅ FIXED: No spaces
+SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8"
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json",
-    "Prefer": "return=minimal"
+    "Prefer": "return-minimal"
 }
 
 BORDER_PREMIUM = 0.20
@@ -101,14 +101,14 @@ def dismiss_modal_cashbuild(page):
             modal = page.query_selector("#storeSelectorModal")
             if not modal or modal.is_hidden():
                 return True
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(300)
     return False
 
 
 def select_store_cashbuild(page, search_term):
     try:
-        page.wait_for_selector(".store-list .store-item", timeout=15000)
-        page.wait_for_timeout(3000)
+        page.wait_for_selector(".store-list .store-item", timeout=10000)
+        page.wait_for_timeout(2000)
     except Exception:
         return False
     stores = page.query_selector_all(".store-list .store-item")
@@ -117,17 +117,17 @@ def select_store_cashbuild(page, search_term):
         try:
             store_text = store.inner_text().strip().lower()
             if search_lower in store_text:
-                store.scroll_into_view_if_needed(timeout=5000)
-                page.wait_for_timeout(1000)
-                store.wait_for_element_state("stable", timeout=10000)
+                store.scroll_into_view_if_needed(timeout=3000)
+                page.wait_for_timeout(500)
+                store.wait_for_element_state("stable", timeout=8000)
                 store.click(force=True)
-                page.wait_for_timeout(5000)
+                page.wait_for_timeout(3000)
                 dismiss_modal_cashbuild(page)
                 try:
-                    page.wait_for_load_state("networkidle", timeout=20000)
+                    page.wait_for_load_state("networkidle", timeout=15000)
                 except Exception:
                     pass
-                page.wait_for_timeout(5000)
+                page.wait_for_timeout(3000)
                 return True
         except Exception:
             continue
@@ -136,7 +136,7 @@ def select_store_cashbuild(page, search_term):
 
 def bake_store_cashbuild(page, branch_name, search_term, start_url):
     print(f"  [setup] Baking cookie for: {branch_name}")
-    page.goto(start_url, wait_until="domcontentloaded", timeout=20000)
+    page.goto(start_url, wait_until="domcontentloaded", timeout=15000)
     page.wait_for_timeout(3000)
     modal = page.query_selector("#storeSelectorModal")
     if not modal:
@@ -205,7 +205,7 @@ def extract_price_builders(page, product, max_retries=2):
         try:
             page.wait_for_timeout(ajax_wait * 1000)
             try:
-                page.wait_for_selector("span.price, .product-price", timeout=10000)
+                page.wait_for_selector("span.price, .product-price", timeout=8000)
             except Exception:
                 pass
             for selector in price_selectors:
@@ -248,9 +248,13 @@ def extract_price_builders(page, product, max_retries=2):
 
 def scrape():
     print(f"\n{'='*60}")
-    print(f"SEKELO MULTI-SOURCE SCRAPER v3.0")
+    print(f"SEKELO MULTI-SOURCE SCRAPER v3.1")
     print(f"Start: {datetime.now()}")
     print(f"{'='*60}\n")
+    
+    # SAFETY NET: Strip any trailing spaces from URLs
+    for product in CASHBUILD_PRODUCTS + BUILDERS_PRODUCTS:
+        product["url"] = product["url"].strip()
     
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -272,7 +276,7 @@ def scrape():
             
             for product in CASHBUILD_PRODUCTS:
                 print(f"  -> {product['label']}")
-                page.goto(product["url"], wait_until="domcontentloaded", timeout=20000)
+                page.goto(product["url"], wait_until="domcontentloaded", timeout=15000)
                 page.wait_for_timeout(3000)
                 
                 if product.get("needs_store_select", False):
@@ -313,7 +317,7 @@ def scrape():
         for product in BUILDERS_PRODUCTS:
             print(f"  -> {product['label']}")
             try:
-                page.goto(product["url"], wait_until="domcontentloaded", timeout=20000)
+                page.goto(product["url"], wait_until="domcontentloaded", timeout=15000)
                 page.wait_for_timeout(3000)
                 price_zar = extract_price_builders(page, product)
                 
