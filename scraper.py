@@ -1,9 +1,6 @@
 """
 Sekelo — Construction Price Intelligence
-Multi-Source Scraper — Production v3.1
-
-Tracks prices from Cashbuild AND Builders.co.za for Eswatini market intelligence.
-Enables cross-source price comparison for better contractor decisions.
+Multi-Source Scraper — Production v3.2 (BULLETPROOF)
 """
 
 import time
@@ -14,8 +11,8 @@ from playwright.sync_api import sync_playwright
 
 # ── CONFIG ─────────────────────────────────────────────────────
 
-SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8"
+SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co".strip()
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8".strip()
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -26,7 +23,6 @@ HEADERS = {
 
 BORDER_PREMIUM = 0.20
 ZAR_TO_SZL = 1.0
-BLOCKS_PER_PALLET = 173
 
 # ── CASHBUILD CONFIG ───────────────────────────────────────────
 
@@ -136,6 +132,8 @@ def select_store_cashbuild(page, search_term):
 
 def bake_store_cashbuild(page, branch_name, search_term, start_url):
     print(f"  [setup] Baking cookie for: {branch_name}")
+    # STRIP URL AT POINT OF USE
+    start_url = start_url.strip()
     page.goto(start_url, wait_until="domcontentloaded", timeout=15000)
     page.wait_for_timeout(3000)
     modal = page.query_selector("#storeSelectorModal")
@@ -248,13 +246,9 @@ def extract_price_builders(page, product, max_retries=2):
 
 def scrape():
     print(f"\n{'='*60}")
-    print(f"SEKELO MULTI-SOURCE SCRAPER v3.1")
+    print(f"SEKELO MULTI-SOURCE SCRAPER v3.2")
     print(f"Start: {datetime.now()}")
     print(f"{'='*60}\n")
-    
-    # SAFETY NET: Strip any trailing spaces from URLs
-    for product in CASHBUILD_PRODUCTS + BUILDERS_PRODUCTS:
-        product["url"] = product["url"].strip()
     
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -269,14 +263,18 @@ def scrape():
             context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             page = context.new_page()
             
-            if not bake_store_cashbuild(page, branch["name"], branch["search"], CASHBUILD_PRODUCTS[0]["url"]):
+            # STRIP URL AT POINT OF USE
+            start_url = CASHBUILD_PRODUCTS[0]["url"].strip()
+            if not bake_store_cashbuild(page, branch["name"], branch["search"], start_url):
                 print("  [Error] Could not set store. Skipping branch.")
                 context.close()
                 continue
             
             for product in CASHBUILD_PRODUCTS:
                 print(f"  -> {product['label']}")
-                page.goto(product["url"], wait_until="domcontentloaded", timeout=15000)
+                # STRIP URL AT POINT OF USE
+                product_url = product["url"].strip()
+                page.goto(product_url, wait_until="domcontentloaded", timeout=15000)
                 page.wait_for_timeout(3000)
                 
                 if product.get("needs_store_select", False):
@@ -317,7 +315,10 @@ def scrape():
         for product in BUILDERS_PRODUCTS:
             print(f"  -> {product['label']}")
             try:
-                page.goto(product["url"], wait_until="domcontentloaded", timeout=15000)
+                # STRIP URL AT POINT OF USE - THIS IS THE KEY FIX
+                product_url = product["url"].strip()
+                print(f"     [debug] URL: '{product_url}'")  # Will show if spaces exist
+                page.goto(product_url, wait_until="domcontentloaded", timeout=15000)
                 page.wait_for_timeout(3000)
                 price_zar = extract_price_builders(page, product)
                 
