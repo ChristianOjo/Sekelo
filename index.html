@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  /* ── RESET & BASE ────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -37,14 +36,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ── LAYOUT ──────────────────────────────────────────────────── */
   .shell {
     max-width: 1100px;
     margin: 0 auto;
     padding: 40px 32px 80px;
   }
 
-  /* ── HEADER ──────────────────────────────────────────────────── */
   .header {
     display: flex;
     justify-content: space-between;
@@ -90,7 +87,6 @@
     50%       { opacity: 0.3; }
   }
 
-  /* ── VOLATILITY SCORE ────────────────────────────────────────── */
   .score-block {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -170,7 +166,6 @@
   .gap-pct.warning { color: var(--warn); }
   .gap-pct.safe    { color: var(--up);   }
 
-  /* ── WARNING BANNER ──────────────────────────────────────────── */
   .warning-banner {
     background: #1a0a00;
     border: 1px solid #3d1f00;
@@ -190,7 +185,6 @@
     text-transform: uppercase;
   }
 
-  /* ── COMMODITY TABLE ─────────────────────────────────────────── */
   .table-block {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -258,10 +252,8 @@
   .delta.flat { color: var(--text-lo); }
 
   .delta-arrow { font-size: 9px; }
-
   .no-data { color: var(--text-lo); font-size: 11px; }
 
-  /* ── BRANCH SELECTOR ─────────────────────────────────────────── */
   .branch-tabs {
     display: flex;
     gap: 1px;
@@ -291,7 +283,6 @@
 
   .branch-tab:hover:not(.active) { color: var(--text-mid); }
 
-  /* ── REGIONAL PARITY ─────────────────────────────────────────── */
   .parity-block {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -328,7 +319,6 @@
   .parity-row .val  { font-weight: 500; }
   .parity-row .premium { color: var(--warn); font-size: 11px; margin-left: 10px; }
 
-  /* ── FOOTER ──────────────────────────────────────────────────── */
   .footer {
     border-top: 1px solid var(--border);
     margin-top: 40px;
@@ -340,7 +330,6 @@
     letter-spacing: 0.08em;
   }
 
-  /* ── LOADING STATE ───────────────────────────────────────────── */
   .loading-overlay {
     position: fixed;
     inset: 0;
@@ -368,7 +357,6 @@
     50%       { opacity: 0.4; }
   }
 
-  /* ── SECTION LABEL ───────────────────────────────────────────── */
   .section-label {
     font-size: 10px;
     letter-spacing: 0.18em;
@@ -380,20 +368,17 @@
   }
 
   .section-label:first-child { margin-top: 0; }
-
 </style>
 </head>
 <body>
 
-<!-- Loading state -->
 <div class="loading-overlay" id="loadingOverlay">
-  <div style="font-size:11px;letter-spacing:.18em;color:#444;text-transform:uppercase">BUILDPRICE 2.0</div>
+  <div style="font-size:11px;letter-spacing:.18em;color:#444;text-transform:uppercase">SEKELO</div>
   <div class="loading-text">Syncing market data…</div>
 </div>
 
 <div class="shell">
 
-  <!-- HEADER -->
   <header class="header">
     <div class="header-left">
       <div class="wordmark">Sekelo · Construction Price Intelligence</div>
@@ -406,34 +391,25 @@
     </div>
   </header>
 
-  <!-- WARNING BANNER -->
   <div class="warning-banner" id="warningBanner">
     <strong>⚠ Volatility Alert:</strong>&nbsp;
     Market movement has exceeded 3% this week.
     Tenders based on current monthly price lists are at <strong>High Risk</strong>.
   </div>
 
-  <!-- SECTION: VOLATILITY SCORE + GAP -->
   <div class="section-label">Market Pulse</div>
   <div class="score-block">
-
-    <!-- ECVS Score -->
     <div class="score-cell">
       <div class="label">Eswatini Construction Volatility Score</div>
       <div class="ecvs-number" id="ecvsNumber">—</div>
-      <div>
-        <span class="ecvs-status" id="ecvsStatus">—</span>
-      </div>
+      <div><span class="ecvs-status" id="ecvsStatus">—</span></div>
       <div style="margin-top:20px;font-size:11px;color:var(--text-lo);line-height:1.7">
         Avg. price movement across<br>Big 5 materials · last 7 days
       </div>
     </div>
-
-    <!-- Official vs Live Gap -->
     <div class="gap-cell">
       <div class="label">Official Price List vs. Live Shelf Price</div>
       <div id="gapRows">
-        <!-- Populated by JS -->
         <div class="gap-row">
           <span class="item-name">Awaiting scraper data</span>
           <span class="official">—</span>
@@ -445,13 +421,9 @@
         Gap ≥5% = tenders signed today are pre-deficit
       </div>
     </div>
-
   </div>
 
-  <!-- SECTION: BIG 5 COMMODITIES -->
   <div class="section-label" style="margin-top:32px">Big 5 Commodities</div>
-
-  <!-- Branch Tabs -->
   <div class="branch-tabs">
     <button class="branch-tab active" onclick="showBranch(0, this)">Southgate — Joburg</button>
     <button class="branch-tab" onclick="showBranch(1, this)">Nelspruit Plaza</button>
@@ -467,86 +439,48 @@
       <span>30d Δ</span>
       <span>Border %</span>
     </div>
-    <div id="commodityRows">
-      <!-- Populated by JS -->
-    </div>
+    <div id="commodityRows"></div>
   </div>
 
-  <!-- SECTION: REGIONAL PARITY -->
   <div class="section-label" style="margin-top:32px">Regional Parity</div>
   <div class="parity-block">
     <div class="parity-cell">
       <div class="label">SA Corridor Price (ZAR)</div>
-      <div id="parityZAR">
-        <div style="color:var(--text-lo);font-size:11px">Awaiting data</div>
-      </div>
+      <div id="parityZAR"><div style="color:var(--text-lo);font-size:11px">Awaiting data</div></div>
     </div>
     <div class="parity-cell">
       <div class="label">Eswatini Landed Price (SZL) + Border Premium</div>
-      <div id="paritySZL">
-        <div style="color:var(--text-lo);font-size:11px">Awaiting data</div>
-      </div>
+      <div id="paritySZL"><div style="color:var(--text-lo);font-size:11px">Awaiting data</div></div>
     </div>
   </div>
 
-  <!-- FOOTER -->
   <footer class="footer">
     <span id="footerSource">Data synced via Sekelo Aggregator (SA/SZ Hub)</span>
     <span>CIC Internal Use · sekelo.vercel.app</span>
   </footer>
 
-</div><!-- /shell -->
+</div>
 
 <script>
-/* ── DEMO/FALLBACK DATA ──────────────────────────────────────────────────
-   Used when prices.json has not been generated yet by the scraper.
-   Replace these with real values once the scraper runs.
-─────────────────────────────────────────────────────────────────────── */
-const DEMO_DATA = {
-  last_updated: "Demo Mode — Run scraper.py to populate live data",
-  border_premium: 0.20,
-  zar_to_szl: 1.0,
-  source: "Cashbuild SA — Public Storefront (Demo)",
-  branches: [
-    {
-      branch: "Southgate | Cashbuild",
-      city: "Joburg",
-      products: [
-        { material_id: "cement", material: "PPC Cement 50kg",         price_zar: 139.95, price_szl: 167.94, delta_24h: 0,    delta_30d: 2.1  },
-        { material_id: "rebar",  material: "Steel Rebar Y12",          price_zar: 285.00, price_szl: 342.00, delta_24h: 1.2,  delta_30d: 4.3  },
-        { material_id: "diesel", material: "Diesel 50ppm (per litre)", price_zar: 21.40,  price_szl: 25.68,  delta_24h: -0.5, delta_30d: -1.2 },
-        { material_id: "timber", material: "Structural Timber S5",     price_zar: 420.00, price_szl: 504.00, delta_24h: 0,    delta_30d: 5.8  },
-        { material_id: "bricks", material: "Stock Bricks (per 1000)",  price_zar: 1850.00,price_szl: 2220.00,delta_24h: 0,    delta_30d: 3.2  },
-      ]
-    },
-    {
-      branch: "Nelspruit Plaza | Cashbuild",
-      city: "Nelspruit",
-      products: [
-        { material_id: "cement", material: "PPC Cement 50kg",         price_zar: 145.00, price_szl: 174.00, delta_24h: 0,    delta_30d: 2.8  },
-        { material_id: "rebar",  material: "Steel Rebar Y12",          price_zar: 292.00, price_szl: 350.40, delta_24h: 1.2,  delta_30d: 4.8  },
-        { material_id: "diesel", material: "Diesel 50ppm (per litre)", price_zar: 21.65,  price_szl: 25.98,  delta_24h: -0.5, delta_30d: -0.9 },
-        { material_id: "timber", material: "Structural Timber S5",     price_zar: 435.00, price_szl: 522.00, delta_24h: 0,    delta_30d: 6.1  },
-        { material_id: "bricks", material: "Stock Bricks (per 1000)",  price_zar: 1920.00,price_szl: 2304.00,delta_24h: 0,    delta_30d: 3.7  },
-      ]
-    }
-  ]
-};
+// ── CORE MATERIALS — only these appear in the main dashboard
+// material_id must match exactly what the scraper writes to Supabase
+const CORE_MATERIALS = ["cement", "rebar", "timber", "bricks"];
 
-/* Official monthly price list (government tender base) */
+// Official tender price list (government/CIC reference)
 const OFFICIAL_PRICES = {
-  cement: { label: "PPC Cement 50kg",   official_zar: 130.00 },
-  rebar:  { label: "Steel Rebar Y12",    official_zar: 265.00 },
-  diesel: { label: "Diesel 50ppm",       official_zar: 20.50  },
-  timber: { label: "Structural Timber",  official_zar: 390.00 },
-  bricks: { label: "Stock Bricks /1000", official_zar: 1750.00},
+  cement: { label: "PPC Cement 50kg",          official_zar: 130.00  },
+  rebar:  { label: "Steel Rebar Y12",           official_zar: 265.00  },
+  timber: { label: "Structural Timber S5",      official_zar: 390.00  },
+  bricks: { label: "Concrete Block 390x190x140",official_zar: 18.00   },
 };
 
-/* ── STATE ────────────────────────────────────────────────────── */
-let DATA         = null;
+const SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8";
+
+let DATA = null;
 let activeBranch = 0;
 
-/* ── HELPERS ──────────────────────────────────────────────────── */
+// ── HELPERS
 function fmt(n, currency = "R", decimals = 2) {
   if (n == null) return '<span class="no-data">—</span>';
   return `${currency}${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
@@ -560,31 +494,93 @@ function deltaHtml(pct) {
   return `<span class="delta ${cls}"><span class="delta-arrow">${arrow}</span>${Math.abs(pct).toFixed(2)}%</span>`;
 }
 
-/* ── ECVS CALCULATION ─────────────────────────────────────────── */
+// ── ECVS
 function calcECVS(branches) {
   const allDeltas = [];
-  branches.forEach(b => {
-    b.products.forEach(p => {
-      if (p.delta_30d != null) allDeltas.push(Math.abs(p.delta_30d));
-    });
-  });
+  branches.forEach(b => b.products.forEach(p => {
+    if (p.delta_30d != null) allDeltas.push(Math.abs(p.delta_30d));
+  }));
   if (!allDeltas.length) return null;
   const avg = allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length;
   return Math.min(100, Math.round(avg * 10));
 }
 
-/* ── RENDER ───────────────────────────────────────────────────── */
+// ── SUPABASE FETCH
+// FIX 1: filter to CORE_MATERIALS only so new product IDs don't pollute results
+// FIX 2: dedup key is material_id__branch__city so both branches keep all materials
+async function fetchFromSupabase() {
+  const materialFilter = CORE_MATERIALS.map(id => `material_id.eq.${id}`).join(",");
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/prices?select=*&or=(${materialFilter})&order=timestamp.desc&limit=500`,
+    { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+  );
+  if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
+  const rows = await res.json();
+  if (!rows.length) throw new Error("No data in Supabase yet");
+
+  // FIX 2: correct dedup key — material + branch + city
+  const seen   = new Set();
+  const latest = [];
+  for (const row of rows) {
+    const key = `${row.material_id}__${row.branch}__${row.city}`;
+    if (!seen.has(key)) { seen.add(key); latest.push(row); }
+  }
+
+  // Group by branch
+  const branchMap = {};
+  for (const row of latest) {
+    const key = `${row.branch}||${row.city}`;
+    if (!branchMap[key]) branchMap[key] = { branch: row.branch, city: row.city, products: [] };
+    branchMap[key].products.push({
+      material_id: row.material_id,
+      material:    row.material,
+      price_zar:   row.price_zar,
+      price_szl:   row.price_szl,
+      delta_24h:   row.delta_24h,
+      delta_30d:   null,
+    });
+  }
+
+  // Sort branches consistently: Joburg first, Nelspruit second
+  const branches = Object.values(branchMap).sort((a, b) => {
+    if (a.city === "Joburg") return -1;
+    if (b.city === "Joburg") return 1;
+    return 0;
+  });
+
+  // FIX 7: timestamp from core materials only (already filtered above)
+  const lastUpdated = rows[0]?.timestamp
+    ? new Date(rows[0].timestamp).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })
+    : "Unknown";
+
+  return {
+    last_updated:   lastUpdated,
+    border_premium: 0.20,
+    zar_to_szl:     1.0,
+    source:         "Cashbuild SA — Live via Sekelo Aggregator",
+    branches,
+  };
+}
+
+// ── POLLING fallback — refresh every 5 minutes
+function startPolling() {
+  setInterval(() => {
+    loadData();
+  }, 5 * 60 * 1000);
+}
+
+// ── RENDER
 function render(data) {
   document.getElementById("loadingOverlay").classList.add("hidden");
-  document.getElementById("lastUpdated").textContent   = data.last_updated || "—";
-  document.getElementById("sourceLabel").textContent   = data.source        || "—";
-  document.getElementById("footerSource").textContent  =
-    `Data synced via Buildprice 2.0 Aggregator (SA/SZ Hub) · ${data.source}`;
+  document.getElementById("lastUpdated").textContent  = data.last_updated || "—";
+  document.getElementById("sourceLabel").textContent  = data.source || "—";
+  document.getElementById("footerSource").textContent =
+    `Data synced via Sekelo Aggregator (SA/SZ Hub) · ${data.source}`;
 
-  /* ECVS */
-  const score = calcECVS(data.branches);
-  document.getElementById("ecvsNumber").textContent = score != null ? score : "—";
+  // ECVS
+  const score    = calcECVS(data.branches);
   const statusEl = document.getElementById("ecvsStatus");
+  document.getElementById("ecvsNumber").textContent = score != null ? score : "—";
   if (score != null) {
     if (score >= 60) {
       statusEl.textContent = "High Volatility";
@@ -599,66 +595,76 @@ function render(data) {
     }
   }
 
-  /* Official vs Live Gap */
+  // FIX 3: Official vs Live gap — uses corrected OFFICIAL_PRICES
   const gapContainer = document.getElementById("gapRows");
   gapContainer.innerHTML = "";
   const branch0 = data.branches[0];
   if (branch0) {
-    branch0.products.forEach(p => {
-      const official = OFFICIAL_PRICES[p.material_id];
-      if (!official || p.price_zar == null) return;
-      const gap = ((p.price_zar - official.official_zar) / official.official_zar * 100).toFixed(1);
-      const gapClass = gap >= 5 ? "danger" : gap >= 2 ? "warning" : "safe";
-      const row = document.createElement("div");
-      row.className = "gap-row";
-      row.innerHTML = `
+    // Show core materials in defined order
+    CORE_MATERIALS.forEach(id => {
+      const p        = branch0.products.find(x => x.material_id === id);
+      const official = OFFICIAL_PRICES[id];
+      if (!official || !p || p.price_zar == null) return;
+      const gap      = ((p.price_zar - official.official_zar) / official.official_zar * 100).toFixed(1);
+      const gapClass = Math.abs(gap) >= 5 ? "danger" : Math.abs(gap) >= 2 ? "warning" : "safe";
+      const row      = document.createElement("div");
+      row.className  = "gap-row";
+      row.innerHTML  = `
         <span class="item-name">${official.label}</span>
         <span class="official">${fmt(official.official_zar)}</span>
         <span class="live">${fmt(p.price_zar)}</span>
-        <span class="gap-pct ${gapClass}">+${gap}%</span>
+        <span class="gap-pct ${gapClass}">${gap >= 0 ? "+" : ""}${gap}%</span>
       `;
       gapContainer.appendChild(row);
     });
   }
 
-  /* Commodity table */
   renderBranchTable(activeBranch, data);
-
-  /* Parity */
   renderParity(data);
 }
 
 function renderBranchTable(branchIndex, data) {
-  const rows = document.getElementById("commodityRows");
+  const rows    = document.getElementById("commodityRows");
   rows.innerHTML = "";
   const premium = data.border_premium * 100;
 
   let products;
+  let branchLabel;
 
   if (branchIndex === "avg") {
-    /* SA Corridor Average */
-    const ids = data.branches[0]?.products.map(p => p.material_id) || [];
-    products = ids.map(id => {
+    // FIX 5: SA Corridor Avg label
+    branchLabel = "SA Corridor Avg";
+    const ids   = CORE_MATERIALS;
+    products    = ids.map(id => {
       const allBranch = data.branches.map(b => b.products.find(p => p.material_id === id)).filter(Boolean);
-      const avgZAR    = allBranch.reduce((s, p) => s + (p.price_zar || 0), 0) / allBranch.length;
-      const avgSZL    = allBranch.reduce((s, p) => s + (p.price_szl || 0), 0) / allBranch.length;
-      const avg24h    = allBranch.every(p => p.delta_24h != null)
+      if (!allBranch.length) return null;
+      const avgZAR = allBranch.reduce((s, p) => s + (p.price_zar || 0), 0) / allBranch.length;
+      const avgSZL = allBranch.reduce((s, p) => s + (p.price_szl || 0), 0) / allBranch.length;
+      const avg24h = allBranch.every(p => p.delta_24h != null)
         ? allBranch.reduce((s, p) => s + p.delta_24h, 0) / allBranch.length : null;
-      const avg30d    = allBranch.every(p => p.delta_30d != null)
-        ? allBranch.reduce((s, p) => s + p.delta_30d, 0) / allBranch.length : null;
-      return { ...allBranch[0], price_zar: avgZAR, price_szl: avgSZL, delta_24h: avg24h ? +avg24h.toFixed(2) : null, delta_30d: avg30d ? +avg30d.toFixed(2) : null };
-    });
+      return {
+        ...allBranch[0],
+        price_zar: avgZAR,
+        price_szl: avgSZL,
+        delta_24h: avg24h != null ? +avg24h.toFixed(2) : null,
+        delta_30d: null
+      };
+    }).filter(Boolean);
   } else {
-    products = data.branches[branchIndex]?.products || [];
+    const branch = data.branches[branchIndex];
+    if (!branch) return;
+    branchLabel = branch.branch;
+    // Show core materials in defined order
+    products = CORE_MATERIALS.map(id => branch.products.find(p => p.material_id === id)).filter(Boolean);
   }
 
   products.forEach(p => {
-    const row = document.createElement("div");
-    row.className = "table-row";
-    row.innerHTML = `
+    const row      = document.createElement("div");
+    row.className  = "table-row";
+    row.innerHTML  = `
       <div>
         <div class="material-name">${p.material}</div>
-        <div class="material-sub">${data.branches[branchIndex === "avg" ? 0 : branchIndex]?.branch || "SA Corridor Avg"}</div>
+        <div class="material-sub">${branchLabel}</div>
       </div>
       <div class="cell price-zar">${fmt(p.price_zar)}</div>
       <div class="cell price-szl">${fmt(p.price_szl, "E")}</div>
@@ -676,21 +682,20 @@ function renderParity(data) {
   zarEl.innerHTML = "";
   szlEl.innerHTML = "";
 
-  /* Avg across branches */
-  const ids = data.branches[0]?.products.map(p => p.material_id) || [];
-  ids.forEach(id => {
+  CORE_MATERIALS.forEach(id => {
     const allBranch = data.branches.map(b => b.products.find(p => p.material_id === id)).filter(Boolean);
-    const avgZAR    = allBranch.reduce((s, p) => s + (p.price_zar || 0), 0) / allBranch.length;
-    const avgSZL    = allBranch.reduce((s, p) => s + (p.price_szl || 0), 0) / allBranch.length;
-    const mat       = allBranch[0]?.material || id;
+    if (!allBranch.length) return;
+    const avgZAR = allBranch.reduce((s, p) => s + (p.price_zar || 0), 0) / allBranch.length;
+    const avgSZL = allBranch.reduce((s, p) => s + (p.price_szl || 0), 0) / allBranch.length;
+    const mat    = allBranch[0]?.material || id;
 
-    const zRow = document.createElement("div");
+    const zRow     = document.createElement("div");
     zRow.className = "parity-row";
     zRow.innerHTML = `<span class="mat">${mat}</span><span class="val">${fmt(avgZAR)}</span>`;
     zarEl.appendChild(zRow);
 
-    const premium = ((avgSZL - avgZAR) / avgZAR * 100).toFixed(1);
-    const sRow = document.createElement("div");
+    const premium  = avgZAR > 0 ? ((avgSZL - avgZAR) / avgZAR * 100).toFixed(1) : "0.0";
+    const sRow     = document.createElement("div");
     sRow.className = "parity-row";
     sRow.innerHTML = `
       <span class="mat">${mat}</span>
@@ -702,7 +707,7 @@ function renderParity(data) {
   });
 }
 
-/* ── BRANCH TAB SWITCHING ─────────────────────────────────────── */
+// ── BRANCH TAB SWITCHING
 function showBranch(index, btn) {
   activeBranch = index;
   document.querySelectorAll(".branch-tab").forEach(t => t.classList.remove("active"));
@@ -710,95 +715,21 @@ function showBranch(index, btn) {
   if (DATA) renderBranchTable(index, DATA);
 }
 
-/* ── SUPABASE CONFIG ──────────────────────────────────────────── */
-const SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8";
-
-/* ── SUPABASE FETCH ────────────────────────────────────────────── */
-async function fetchFromSupabase() {
-  /* Get the latest price for each material+city combination */
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/prices?select=*&order=timestamp.desc&limit=100`,
-    { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
-  );
-  if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
-  const rows = await res.json();
-  if (!rows.length) throw new Error("No data in Supabase yet");
-
-  /* Deduplicate — keep only the latest row per material+city */
-  const seen     = new Set();
-  const latest   = [];
-  for (const row of rows) {
-    const key = `${row.material_id}__${row.city}`;
-    if (!seen.has(key)) { seen.add(key); latest.push(row); }
-  }
-
-  /* Group by branch */
-  const branchMap = {};
-  for (const row of latest) {
-    const key = `${row.branch}||${row.city}`;
-    if (!branchMap[key]) branchMap[key] = { branch: row.branch, city: row.city, products: [] };
-    branchMap[key].products.push({
-      material_id: row.material_id,
-      material:    row.material,
-      price_zar:   row.price_zar,
-      price_szl:   row.price_szl,
-      delta_24h:   row.delta_24h,
-      delta_30d:   null,
-    });
-  }
-
-  /* Get most recent timestamp */
-  const lastUpdated = rows[0]?.timestamp
-    ? new Date(rows[0].timestamp).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })
-    : "Unknown";
-
-  return {
-    last_updated:   lastUpdated,
-    border_premium: 0.20,
-    zar_to_szl:     1.0,
-    source:         "Cashbuild SA — Live via Sekelo Aggregator",
-    branches:       Object.values(branchMap),
-  };
-}
-
-/* ── REALTIME SUBSCRIPTION ────────────────────────────────────── */
-function subscribeRealtime() {
-  /* Supabase realtime via WebSocket — reloads data on any new insert */
-  const ws = new WebSocket(
-    `wss://glvpdeneagsqwxzrtaln.supabase.co/realtime/v1/websocket?apikey=${SUPABASE_KEY}&vsn=1.0.0`
-  );
-  ws.onopen = () => {
-    ws.send(JSON.stringify({
-      topic: "realtime:public:prices",
-      event: "phx_join",
-      payload: {},
-      ref: "1"
-    }));
-  };
-  ws.onmessage = (msg) => {
-    const data = JSON.parse(msg.data);
-    if (data.event === "INSERT") {
-      console.log("Sekelo: new price received — refreshing");
-      loadData();
-    }
-  };
-  ws.onerror = () => console.warn("Sekelo: realtime unavailable — using polling");
-}
-
-/* ── DATA LOADER ──────────────────────────────────────────────── */
+// ── DATA LOADER
 async function loadData() {
   try {
     DATA = await fetchFromSupabase();
   } catch (e) {
-    console.warn("Supabase unavailable — using demo data:", e.message);
-    DATA = DEMO_DATA;
+    console.warn("Supabase fetch failed:", e.message);
+    document.getElementById("loadingOverlay").classList.add("hidden");
+    document.getElementById("lastUpdated").textContent = "Data unavailable";
+    return;
   }
   render(DATA);
 }
 
 loadData();
-subscribeRealtime();
+startPolling();
 </script>
 </body>
 </html>
