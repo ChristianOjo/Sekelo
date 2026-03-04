@@ -124,48 +124,51 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
     return False
 
 def extract_price(page, product):
-    # PRIMARY selector only — most reliable
-    selectors = ["span.current-price-value"] if product.get("needs_store_select") else ["span.current-price-value", ".price"]
-    
-    ajax_wait = product.get("ajax_wait", 15)
     min_price = product["min_price"]
     max_price = product["max_price"]
-    
-    for attempt in range(ajax_wait):
-        for selector in selectors:
-            try:
-                els = page.query_selector_all(selector)
-                for el in els:
-                    if not el.is_visible():
-                        continue
-                    
-                    # Content attribute (most reliable)
-                    content = el.get_attribute("content")
-                    if content:
-                        try:
-                            price = float(content)
-                            if min_price <= price <= max_price:
-                                print(f"     [debug] {product['id']}: R{price} via {selector} (content)")
-                                return price
-                        except:
-                            pass
-                    
-                    # Text fallback
-                    text = el.inner_text().strip().replace("R", "").replace(",", "").strip()
-                    match = re.search(r'[\d.]+', text)
-                    if match:
-                        try:
-                            price = float(match.group())
-                            if min_price <= price <= max_price:
-                                print(f"     [debug] {product['id']}: R{price} via {selector} (text)")
-                                return price
-                        except:
-                            pass
-            except:
-                pass
-        
+    ajax_wait = product.get("ajax_wait", 15)
+
+    # First: wait specifically for span.current-price-value with a real content value
+    for _ in range(ajax_wait):
+        try:
+            els = page.query_selector_all("span.current-price-value")
+            for el in els:
+                if not el.is_visible():
+                    continue
+                content = el.get_attribute("content")
+                if content:
+                    try:
+                        price = float(content)
+                        if min_price <= price <= max_price:
+                            print(f"     [debug] {product['id']}: R{price} via content")
+                            return price
+                    except:
+                        pass
+        except:
+            pass
         page.wait_for_timeout(1000)
-    
+
+    # Fallback: only use .price text if needs_store_select is False
+    # (non-store-gated products like rebar/timber have reliable text prices)
+    if not product.get("needs_store_select"):
+        try:
+            els = page.query_selector_all(".price")
+            for el in els:
+                if not el.is_visible():
+                    continue
+                text = el.inner_text().strip().replace("R", "").replace(",", "").strip()
+                match = re.search(r'[\d.]+', text)
+                if match:
+                    try:
+                        price = float(match.group())
+                        if min_price <= price <= max_price:
+                            print(f"     [debug] {product['id']}: R{price} via .price text")
+                            return price
+                    except:
+                        pass
+        except:
+            pass
+
     print(f"     [debug] {product['id']}: No price in range [{min_price}-{max_price}]")
     return None
 
