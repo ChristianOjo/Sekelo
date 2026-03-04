@@ -125,7 +125,7 @@ def bake_store_cookie(page, branch_name, search_term, start_url):
 
 def extract_price(page, product):
     # PRIMARY selector only — most reliable
-    selectors = ["span.current-price-value", ".price"]
+    selectors = ["span.current-price-value"] if product.get("needs_store_select") else ["span.current-price-value", ".price"]
     
     ajax_wait = product.get("ajax_wait", 15)
     min_price = product["min_price"]
