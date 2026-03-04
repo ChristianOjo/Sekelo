@@ -22,7 +22,7 @@ HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json",
-    "Prefer": "return-minimal"
+    "Prefer": "return=minimal"
 }
 
 BORDER_PREMIUM = 0.20
