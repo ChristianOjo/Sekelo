@@ -176,41 +176,33 @@ def extract_price(page, product):
 
 def scrape():
     print(f"\nSEKELO SCRAPER v2.0 — {datetime.now()}\n")
-    
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        
         for branch in BRANCHES:
             print(f"--- {branch['name']} ---")
             context = browser.new_context()
             page = context.new_page()
-            
-            # STRIP URL AT POINT OF USE
-            first_url = PRODUCTS[0]["url"].strip()
-            if not bake_store_cookie(page, branch["name"], branch["search"], first_url):
-                print("  [error] Could not set store. Skipping branch.")
-                context.close()
-                continue
-            
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
-                
-                # STRIP URL AT POINT OF USE — THIS IS THE KEY FIX
                 product_url = product["url"].strip()
-                print(f"     [debug] URL length: {len(product_url)}")
-                
+                # Navigate and force store selection every time
                 page.goto(product_url, wait_until="domcontentloaded", timeout=15000)
                 page.wait_for_timeout(3000)
-                
-                # Select store if needed
-                if product.get("needs_store_select") and page.query_selector("#storeSelectorModal"):
-                    print("     [setup] Selecting store...")
+                # Always attempt store selection regardless of modal state
+                if product.get("needs_store_select"):
+                    # Trigger the store selector manually if not shown
+                    if not page.query_selector("#storeSelectorModal"):
+                        try:
+                            # Click the store selector trigger button
+                            trigger = page.query_selector(".store-selector-trigger, .change-store, [data-toggle='store-selector']")
+                            if trigger:
+                                trigger.click(force=True)
+                                page.wait_for_timeout(2000)
+                        except:
+                            pass
                     select_store(page, branch["search"])
-                    page.wait_for_timeout(2000)
-                
-                # Extract price
+                    page.wait_for_timeout(3000)
                 price = extract_price(page, product)
-                
                 if price:
                     prev = get_previous_price(product["id"], branch["city"])
                     delta = round(((price - prev["price_zar"]) / prev["price_zar"]) * 100, 2) if prev and prev.get("price_zar") else None
@@ -219,14 +211,9 @@ def scrape():
                 else:
                     push_price(product["id"], product["label"], branch["name"], branch["city"], None, None, available=False)
                     print("     ⚠️  UNAVAILABLE")
-                
                 time.sleep(1)
-            
             context.close()
-            print()
-        
         browser.close()
-    
     print("\n✅ COMPLETE\n")
 
 if __name__ == "__main__":
