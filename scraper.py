@@ -37,7 +37,7 @@ BRANCHES = [
 PRODUCTS = [
     {"id": "cement", "label": "AfriSam All Purpose 42.5N 50kg", "url": "https://www.cashbuild.co.za/cement-yard/301-cement-afrisam-all-purpose-425n", "ajax_wait": 25, "min_price": 90, "max_price": 145, "needs_store_select": True},
     {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_store_select": False},
-    {"id": "timber", "label": "Structural Timber S5 38x114 6.0m", "url": "https://www.cashbuild.co.za/timber/19160-structural-timber-sabs-untreated-38x114-60m", "ajax_wait": 15, "min_price": 200, "max_price": 215, "needs_store_select": False},
+    {"id": "timber", "label": "Structural Timber S5 38x114 6.0m", "url": "https://www.cashbuild.co.za/timber/19160-structural-timber-sabs-untreated-38x114-60m", "ajax_wait": 15, "min_price": 200, "max_price": 215, "needs_store_select": True},
     {"id": "bricks", "label": "Concrete Block MB-140", "url": "https://www.cashbuild.co.za/cement-blocks/1099412-block-concrete-mb-140", "ajax_wait": 25, "min_price": 12, "max_price": 20, "needs_store_select": True},
     {"id": "bricks_maxi", "label": "Cement Brick Solid Maxi", "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi", "ajax_wait": 20, "min_price": 2, "max_price": 10, "needs_store_select": True},
     {"id": "concrete_mix", "label": "Concrete Mix 40kg", "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag", "ajax_wait": 20, "min_price": 38, "max_price": 55, "needs_store_select": True},
