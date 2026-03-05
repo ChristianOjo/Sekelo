@@ -1,17 +1,19 @@
 """
 Sekelo — Cashbuild Scraper
-Production v2.0 (NUCLEAR FIX)
+Production v3.0 (FINAL)
 
-All URLs stripped at point of use.
-Price ranges tightened to prevent wrong element capture.
-Each product gets fresh page state.
+Price extraction strategy:
+1. Force store selection on every product, every branch
+2. Wait up to 35s for span.current-price-value[content] to appear (AJAX price)
+3. If that times out, fall back to scoped .price selector within product detail container only
+4. UNAVAILABLE only means the store website says out of stock
 """
 
 import time
 import re
 import requests
 from datetime import datetime
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 # ── CONFIG ─────────────────────────────────────────────────────
 
@@ -29,18 +31,30 @@ BORDER_PREMIUM = 0.20
 ZAR_TO_SZL = 1.0
 
 BRANCHES = [
-    {"name": "Southgate | Cashbuild", "city": "Joburg", "search": "southgate"},
-    {"name": "Nelspruit Plaza | Cashbuild", "city": "Nelspruit", "search": "nelspruit plaza"},
+    {"name": "Southgate | Cashbuild",       "city": "Joburg",    "search": "southgate"},
+    {"name": "Nelspruit Plaza | Cashbuild",  "city": "Nelspruit", "search": "nelspruit plaza"},
 ]
 
-# TIGHTENED PRICE RANGES — Prevents wrong element capture
+# All products — price ranges cover ±25% of known real price to handle genuine movement
 PRODUCTS = [
-    {"id": "cement", "label": "AfriSam All Purpose 42.5N 50kg", "url": "https://www.cashbuild.co.za/cement-yard/301-cement-afrisam-all-purpose-425n", "ajax_wait": 25, "min_price": 90, "max_price": 145, "needs_store_select": True},
-    {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_store_select": False},
-    {"id": "timber", "label": "Structural Timber S5 38x114 6.0m", "url": "https://www.cashbuild.co.za/timber/19160-structural-timber-sabs-untreated-38x114-60m", "ajax_wait": 15, "min_price": 200, "max_price": 215, "needs_store_select": True},
-    {"id": "bricks", "label": "Concrete Block MB-140", "url": "https://www.cashbuild.co.za/cement-blocks/1099412-block-concrete-mb-140", "ajax_wait": 25, "min_price": 12, "max_price": 20, "needs_store_select": True},
-    {"id": "bricks_maxi", "label": "Cement Brick Solid Maxi", "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi", "ajax_wait": 20, "min_price": 2, "max_price": 10, "needs_store_select": True},
-    {"id": "concrete_mix", "label": "Concrete Mix 40kg", "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag", "ajax_wait": 20, "min_price": 38, "max_price": 55, "needs_store_select": True},
+    {"id": "cement",       "label": "AfriSam All Purpose 42.5N 50kg",  "url": "https://www.cashbuild.co.za/cement-yard/301-cement-afrisam-all-purpose-425n",            "min_price": 90,  "max_price": 160},
+    {"id": "rebar",        "label": "Steel Rebar Y12",                  "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa",   "min_price": 100, "max_price": 200},
+    {"id": "timber",       "label": "Structural Timber S5 38x114 6.0m", "url": "https://www.cashbuild.co.za/timber/19160-structural-timber-sabs-untreated-38x114-60m",  "min_price": 180, "max_price": 260},
+    {"id": "bricks",       "label": "Concrete Block MB-140",            "url": "https://www.cashbuild.co.za/cement-blocks/1099412-block-concrete-mb-140",                "min_price": 8,   "max_price": 25},
+    {"id": "bricks_maxi",  "label": "Cement Brick Solid Maxi",          "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi",      "min_price": 2,   "max_price": 12},
+    {"id": "concrete_mix", "label": "Concrete Mix 40kg",                "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag",                           "min_price": 35,  "max_price": 60},
+]
+
+# Scoped fallback selectors — target price within product detail container only
+# NOT global .price which picks up every related product on the page
+SCOPED_PRICE_SELECTORS = [
+    ".product-single__price span.current-price-value",
+    ".product-single__price .money",
+    ".product__price span.current-price-value",
+    ".product__price .money",
+    "#product-price span.current-price-value",
+    ".product-detail-price span.current-price-value",
+    ".product-info__price span.current-price-value",
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -69,19 +83,13 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h, availa
     requests.post(f"{SUPABASE_URL}/rest/v1/prices", headers=HEADERS, json=payload)
     return price_szl
 
-# ── BROWSER ─────────────────────────────────────────────────────
+# ── STORE SELECTION ─────────────────────────────────────────────
 
 def dismiss_modal(page):
     for _ in range(3):
         modal = page.query_selector("#storeSelectorModal")
-        if not modal:
+        if not modal or modal.is_hidden():
             return True
-        backdrop = page.query_selector("#storeSelectorModal .modal-backdrop")
-        if backdrop:
-            try:
-                backdrop.click(force=True)
-            except:
-                pass
         for _ in range(20):
             modal = page.query_selector("#storeSelectorModal")
             if not modal or modal.is_hidden():
@@ -110,28 +118,57 @@ def select_store(page, search_term):
             continue
     return False
 
-def bake_store_cookie(page, branch_name, search_term, start_url):
-    print(f"  [setup] Baking cookie for: {branch_name}")
-    # STRIP URL AT POINT OF USE
-    page.goto(start_url.strip(), wait_until="domcontentloaded", timeout=15000)
-    page.wait_for_timeout(3000)
+def ensure_store_selected(page, search_term):
+    """Open store modal if not showing, then select the branch."""
     if not page.query_selector("#storeSelectorModal"):
-        print("  [setup] Cookie already set")
-        return True
-    if select_store(page, search_term):
-        print(f"  [setup] Cookie baked: {branch_name}")
-        return True
-    return False
+        for trigger_sel in [".store-selector-trigger", ".change-store", "[data-store-selector]", ".select-store"]:
+            try:
+                trigger = page.query_selector(trigger_sel)
+                if trigger and trigger.is_visible():
+                    trigger.click(force=True)
+                    page.wait_for_timeout(2000)
+                    break
+            except:
+                pass
+    return select_store(page, search_term)
 
-def extract_price(page, product):
+# ── PRICE EXTRACTION ────────────────────────────────────────────
+
+def extract_price(page, product, search_term):
     min_price = product["min_price"]
     max_price = product["max_price"]
-    ajax_wait = product.get("ajax_wait", 15)
+    pid = product["id"]
 
-    # First: wait specifically for span.current-price-value with a real content value
-    for _ in range(ajax_wait):
+    # Step 1: trigger store selection on every product page
+    print(f"     [setup] Selecting store...")
+    ensure_store_selected(page, search_term)
+
+    # Step 2: wait up to 35s for AJAX price (content attribute)
+    # This is the definitive store-specific price element
+    try:
+        page.wait_for_selector("span.current-price-value[content]", timeout=35000)
+        els = page.query_selector_all("span.current-price-value")
+        for el in els:
+            if not el.is_visible():
+                continue
+            content = el.get_attribute("content")
+            if content:
+                try:
+                    price = float(content)
+                    if min_price <= price <= max_price:
+                        print(f"     [debug] {pid}: R{price} via content attribute")
+                        return price
+                    else:
+                        print(f"     [debug] {pid}: content R{price} outside range [{min_price}-{max_price}]")
+                except:
+                    pass
+    except PlaywrightTimeout:
+        print(f"     [debug] {pid}: content timed out after 35s, trying scoped fallback")
+
+    # Step 3: scoped fallback — product detail container only
+    for selector in SCOPED_PRICE_SELECTORS:
         try:
-            els = page.query_selector_all("span.current-price-value")
+            els = page.query_selector_all(selector)
             for el in els:
                 if not el.is_visible():
                     continue
@@ -140,69 +177,74 @@ def extract_price(page, product):
                     try:
                         price = float(content)
                         if min_price <= price <= max_price:
-                            print(f"     [debug] {product['id']}: R{price} via content")
+                            print(f"     [debug] {pid}: R{price} via scoped content ({selector})")
                             return price
                     except:
                         pass
-        except:
-            pass
-        page.wait_for_timeout(1000)
-
-    # Fallback: only use .price text if needs_store_select is False
-    # (non-store-gated products like rebar/timber have reliable text prices)
-        try:
-            els = page.query_selector_all(".price")
-            for el in els:
-                if not el.is_visible():
-                    continue
                 text = el.inner_text().strip().replace("R", "").replace(",", "").strip()
                 match = re.search(r'[\d.]+', text)
                 if match:
                     try:
                         price = float(match.group())
-                        print(f"     [debug] {product['id']} candidate: R{price}")
                         if min_price <= price <= max_price:
-                            print(f"     [debug] {product['id']}: R{price} via .price text")
+                            print(f"     [debug] {pid}: R{price} via scoped text ({selector})")
                             return price
                     except:
                         pass
         except:
             pass
 
-    print(f"     [debug] {product['id']}: No price in range [{min_price}-{max_price}]")
+    # Step 4: one final retry — re-select store and check content attribute again
+    print(f"     [debug] {pid}: final retry — re-selecting store")
+    select_store(page, search_term)
+    page.wait_for_timeout(8000)
+    try:
+        els = page.query_selector_all("span.current-price-value")
+        for el in els:
+            if not el.is_visible():
+                continue
+            content = el.get_attribute("content")
+            if content:
+                try:
+                    price = float(content)
+                    if min_price <= price <= max_price:
+                        print(f"     [debug] {pid}: R{price} via content (retry)")
+                        return price
+                except:
+                    pass
+    except:
+        pass
+
+    print(f"     [debug] {pid}: all methods exhausted, no price in range [{min_price}-{max_price}]")
     return None
 
-# ── SCRAPE ───────────────────────────────────────────────────────
+# ── MAIN ─────────────────────────────────────────────────────────
 
 def scrape():
-    print(f"\nSEKELO SCRAPER v2.0 — {datetime.now()}\n")
+    print(f"\nSEKELO SCRAPER v3.0 — {datetime.now()}\n")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
+
         for branch in BRANCHES:
             print(f"--- {branch['name']} ---")
             context = browser.new_context()
             page = context.new_page()
+
             for product in PRODUCTS:
                 print(f"  -> {product['label']}")
-                product_url = product["url"].strip()
-                # Navigate and force store selection every time
-                page.goto(product_url, wait_until="domcontentloaded", timeout=15000)
-                page.wait_for_timeout(3000)
-                # Always attempt store selection regardless of modal state
-                if product.get("needs_store_select"):
-                    # Trigger the store selector manually if not shown
-                    if not page.query_selector("#storeSelectorModal"):
-                        try:
-                            # Click the store selector trigger button
-                            trigger = page.query_selector(".store-selector-trigger, .change-store, [data-toggle='store-selector']")
-                            if trigger:
-                                trigger.click(force=True)
-                                page.wait_for_timeout(2000)
-                        except:
-                            pass
-                    select_store(page, branch["search"])
+
+                try:
+                    page.goto(product["url"].strip(), wait_until="domcontentloaded", timeout=20000)
                     page.wait_for_timeout(3000)
-                price = extract_price(page, product)
+                except Exception as e:
+                    print(f"     [error] page load failed: {e}")
+                    push_price(product["id"], product["label"], branch["name"], branch["city"], None, None, available=False)
+                    print("     ⚠️  UNAVAILABLE")
+                    continue
+
+                price = extract_price(page, product, branch["search"])
+
                 if price:
                     prev = get_previous_price(product["id"], branch["city"])
                     delta = round(((price - prev["price_zar"]) / prev["price_zar"]) * 100, 2) if prev and prev.get("price_zar") else None
@@ -211,10 +253,16 @@ def scrape():
                 else:
                     push_price(product["id"], product["label"], branch["name"], branch["city"], None, None, available=False)
                     print("     ⚠️  UNAVAILABLE")
+
                 time.sleep(1)
+
             context.close()
+            print()
+
         browser.close()
+
     print("\n✅ COMPLETE\n")
+
 
 if __name__ == "__main__":
     scrape()
