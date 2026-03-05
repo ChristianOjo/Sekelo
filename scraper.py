@@ -150,7 +150,6 @@ def extract_price(page, product):
 
     # Fallback: only use .price text if needs_store_select is False
     # (non-store-gated products like rebar/timber have reliable text prices)
-    if not product.get("needs_store_select"):
         try:
             els = page.query_selector_all(".price")
             for el in els:
