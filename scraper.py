@@ -37,12 +37,12 @@ BRANCHES = [
 
 # All products — price ranges cover ±25% of known real price to handle genuine movement
 PRODUCTS = [
-    {"id": "cement",       "label": "AfriSam All Purpose 42.5N 50kg",  "url": "https://www.cashbuild.co.za/cement-yard/301-cement-afrisam-all-purpose-425n",            "min_price": 90,  "max_price": 160},
-    {"id": "rebar",        "label": "Steel Rebar Y12",                  "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa",   "min_price": 100, "max_price": 200},
-    {"id": "timber",       "label": "Structural Timber S5 38x114 6.0m", "url": "https://www.cashbuild.co.za/timber/19160-structural-timber-sabs-untreated-38x114-60m",  "min_price": 180, "max_price": 260},
-    {"id": "bricks",       "label": "Concrete Block MB-140",            "url": "https://www.cashbuild.co.za/cement-blocks/1099412-block-concrete-mb-140",                "min_price": 8,   "max_price": 25},
-    {"id": "bricks_maxi",  "label": "Cement Brick Solid Maxi",          "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi",      "min_price": 2,   "max_price": 12},
-    {"id": "concrete_mix", "label": "Concrete Mix 40kg",                "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag",                           "min_price": 35,  "max_price": 60},
+    {"id": "cement",       "label": "AfriSam All Purpose 42.5N 50kg",  "url": "https://www.cashbuild.co.za/cement-yard/301-cement-afrisam-all-purpose-425n",            "min_price": 90,  "max_price": 160, "price_type": "ajax"},
+    {"id": "rebar",        "label": "Steel Rebar Y12",                  "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa",   "min_price": 100, "max_price": 200, "price_type": "ajax"},
+    {"id": "timber",       "label": "Structural Timber S5 38x114 6.0m", "url": "https://www.cashbuild.co.za/timber/19160-structural-timber-sabs-untreated-38x114-60m",  "min_price": 180, "max_price": 260, "price_type": "ajax"},
+    {"id": "bricks",       "label": "Concrete Block MB-140",            "url": "https://www.cashbuild.co.za/cement-blocks/1099412-block-concrete-mb-140",                "min_price": 8,   "max_price": 25,  "price_type": "text"},
+    {"id": "bricks_maxi",  "label": "Cement Brick Solid Maxi",          "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi",      "min_price": 2,   "max_price": 12,  "price_type": "text"},
+    {"id": "concrete_mix", "label": "Concrete Mix 40kg",                "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag",                           "min_price": 35,  "max_price": 60,  "price_type": "text"},
 ]
 
 # Scoped fallback selectors — target price within product detail container only
@@ -138,6 +138,26 @@ def extract_price(page, product, search_term):
     min_price = product["min_price"]
     max_price = product["max_price"]
     pid = product["id"]
+
+    # Static pages — price is in DOM immediately, no AJAX, no store selection needed
+    if product.get("price_type") == "text":
+        page.wait_for_timeout(3000)
+        els = page.query_selector_all(".price")
+        for el in els:
+            if not el.is_visible():
+                continue
+            text = el.inner_text().strip().replace("R", "").replace(",", "").strip()
+            match = re.search(r'[\d.]+', text)
+            if match:
+                try:
+                    price = float(match.group())
+                    if min_price <= price <= max_price:
+                        print(f"     [debug] {pid}: R{price} via text (static page)")
+                        return price
+                except:
+                    pass
+        print(f"     [debug] {pid}: no price in range [{min_price}-{max_price}]")
+        return None
 
     # Step 1: trigger store selection on every product page
     print(f"     [setup] Selecting store...")
