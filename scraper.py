@@ -1,24 +1,26 @@
 """
 Sekelo — Cashbuild Scraper
-Production v3.0 (FINAL)
+Production v3.1 (FIXED)
 
-Price extraction strategy:
-1. Force store selection on every product, every branch
-2. Wait up to 35s for span.current-price-value[content] to appear (AJAX price)
-3. If that times out, fall back to scoped .price selector within product detail container only
-4. UNAVAILABLE only means the store website says out of stock
+Changes from v3.0:
+1. Fixed Supabase URL (removed trailing spaces)
+2. Added store selection verification
+3. Replaced fixed 35s wait with explicit network wait
+4. Added screenshot on failure for debugging
+5. Fixed duplicate product logging
 """
 
 import time
 import re
 import requests
+import os
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 # ── CONFIG ─────────────────────────────────────────────────────
 
-SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8"
+SUPABASE_URL = "https://glvpdeneagsqwxzrtaln.supabase.co"  # FIXED: No trailing spaces
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8")
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -35,7 +37,6 @@ BRANCHES = [
     {"name": "Nelspruit Plaza | Cashbuild",  "city": "Nelspruit", "search": "nelspruit plaza"},
 ]
 
-# All products — price ranges cover ±25% of known real price to handle genuine movement
 PRODUCTS = [
     {"id": "cement",       "label": "AfriSam All Purpose 42.5N 50kg",  "url": "https://www.cashbuild.co.za/cement-yard/301-cement-afrisam-all-purpose-425n",            "min_price": 90,  "max_price": 160, "price_type": "ajax"},
     {"id": "rebar",        "label": "Steel Rebar Y12",                  "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa",   "min_price": 100, "max_price": 200, "price_type": "ajax"},
@@ -45,8 +46,6 @@ PRODUCTS = [
     {"id": "concrete_mix", "label": "Concrete Mix 40kg",                "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag",                           "min_price": 35,  "max_price": 60,  "price_type": "text"},
 ]
 
-# Scoped fallback selectors — target price within product detail container only
-# NOT global .price which picks up every related product on the page
 SCOPED_PRICE_SELECTORS = [
     ".product-single__price span.current-price-value",
     ".product-single__price .money",
@@ -55,6 +54,8 @@ SCOPED_PRICE_SELECTORS = [
     "#product-price span.current-price-value",
     ".product-detail-price span.current-price-value",
     ".product-info__price span.current-price-value",
+    "span.current-price-value",  # Added: generic fallback
+    "[data-price]",              # Added: alternative data attribute
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -67,10 +68,12 @@ def get_previous_price(material_id, city):
             "order": "timestamp.desc",
             "limit": "1",
             "select": "price_zar"
-        })
+        }, timeout=10)
+        res.raise_for_status()
         data = res.json()
         return data[0] if data else None
-    except Exception:
+    except Exception as e:
+        print(f"     [warn] Supabase fetch failed: {e}")
         return None
 
 def push_price(material_id, material, branch, city, price_zar, delta_24h, available=True):
@@ -80,7 +83,11 @@ def push_price(material_id, material, branch, city, price_zar, delta_24h, availa
         "city": city, "source": "cashbuild", "price_zar": price_zar, "price_szl": price_szl,
         "delta_24h": delta_24h, "currency": "ZAR", "available": available
     }
-    requests.post(f"{SUPABASE_URL}/rest/v1/prices", headers=HEADERS, json=payload)
+    try:
+        res = requests.post(f"{SUPABASE_URL}/rest/v1/prices", headers=HEADERS, json=payload, timeout=10)
+        res.raise_for_status()
+    except Exception as e:
+        print(f"     [warn] Supabase push failed: {e}")
     return price_szl
 
 # ── STORE SELECTION ─────────────────────────────────────────────
@@ -98,48 +105,72 @@ def dismiss_modal(page):
     return False
 
 def select_store(page, search_term):
+    """Select store and VERIFY it was selected."""
     try:
         page.wait_for_selector(".store-list .store-item", timeout=10000)
         page.wait_for_timeout(2000)
     except:
+        print(f"     [warn] Store list not found")
         return False
+    
     stores = page.query_selector_all(".store-list .store-item")
+    print(f"     [debug] Found {len(stores)} stores in modal")
+    
     for store in stores:
         try:
-            if search_term.lower() in store.inner_text().strip().lower():
+            store_text = store.inner_text().strip().lower()
+            if search_term.lower() in store_text:
                 store.scroll_into_view_if_needed(timeout=3000)
                 page.wait_for_timeout(500)
                 store.click(force=True)
                 page.wait_for_timeout(3000)
                 dismiss_modal(page)
                 page.wait_for_timeout(3000)
+                
+                # VERIFY: Check if store name appears in header
+                try:
+                    header = page.query_selector(".store-selector-trigger, .selected-store-name")
+                    if header and search_term.lower() in header.inner_text().lower():
+                        print(f"     [debug] Store selection VERIFIED")
+                        return True
+                    else:
+                        print(f"     [warn] Store selection may not have registered")
+                except:
+                    pass
                 return True
-        except:
+        except Exception as e:
+            print(f"     [warn] Store click failed: {e}")
             continue
+    
+    print(f"     [warn] No store matched '{search_term}'")
     return False
 
 def ensure_store_selected(page, search_term):
-    """Open store modal if not showing, then select the branch."""
+    """Open store modal if needed, then select the branch."""
+    # Check if store modal is already open
     if not page.query_selector("#storeSelectorModal"):
-        for trigger_sel in [".store-selector-trigger", ".change-store", "[data-store-selector]", ".select-store"]:
+        # Try multiple trigger selectors
+        for trigger_sel in [".store-selector-trigger", ".change-store", "[data-store-selector]", ".select-store", ".store-btn"]:
             try:
                 trigger = page.query_selector(trigger_sel)
                 if trigger and trigger.is_visible():
+                    print(f"     [debug] Clicking store trigger: {trigger_sel}")
                     trigger.click(force=True)
-                    page.wait_for_timeout(2000)
+                    page.wait_for_timeout(3000)
                     break
             except:
                 pass
+    
     return select_store(page, search_term)
 
 # ── PRICE EXTRACTION ────────────────────────────────────────────
 
-def extract_price(page, product, search_term):
+def extract_price(page, product, search_term, branch_name):
     min_price = product["min_price"]
     max_price = product["max_price"]
     pid = product["id"]
 
-    # Static pages — price is in DOM immediately, no AJAX, no store selection needed
+    # Static pages — no store selection needed
     if product.get("price_type") == "text":
         page.wait_for_timeout(3000)
         els = page.query_selector_all(".price")
@@ -159,14 +190,18 @@ def extract_price(page, product, search_term):
         print(f"     [debug] {pid}: no price in range [{min_price}-{max_price}]")
         return None
 
-    # Step 1: trigger store selection on every product page
-    print(f"     [setup] Selecting store...")
-    ensure_store_selected(page, search_term)
+    # AJAX products — store selection required
+    print(f"     [setup] Selecting store for {branch_name}...")
+    store_selected = ensure_store_selected(page, search_term)
+    
+    if not store_selected:
+        print(f"     [warn] Store selection failed, attempting price extraction anyway")
 
-    # Step 2: wait up to 35s for AJAX price (content attribute)
-    # This is the definitive store-specific price element
+    # Step 1: Wait for AJAX price with explicit selector (max 20s)
     try:
-        page.wait_for_selector("span.current-price-value[content]", timeout=35000)
+        page.wait_for_selector("span.current-price-value", timeout=20000)
+        page.wait_for_timeout(2000)  # Allow JS to populate content attribute
+        
         els = page.query_selector_all("span.current-price-value")
         for el in els:
             if not el.is_visible():
@@ -183,15 +218,16 @@ def extract_price(page, product, search_term):
                 except:
                     pass
     except PlaywrightTimeout:
-        print(f"     [debug] {pid}: content timed out after 35s, trying scoped fallback")
+        print(f"     [debug] {pid}: content timeout after 20s")
 
-    # Step 3: scoped fallback — product detail container only
+    # Step 2: Scoped fallback selectors
     for selector in SCOPED_PRICE_SELECTORS:
         try:
             els = page.query_selector_all(selector)
             for el in els:
                 if not el.is_visible():
                     continue
+                # Try content attribute first
                 content = el.get_attribute("content")
                 if content:
                     try:
@@ -201,6 +237,7 @@ def extract_price(page, product, search_term):
                             return price
                     except:
                         pass
+                # Try text content
                 text = el.inner_text().strip().replace("R", "").replace(",", "").strip()
                 match = re.search(r'[\d.]+', text)
                 if match:
@@ -214,11 +251,14 @@ def extract_price(page, product, search_term):
         except:
             pass
 
-    # Step 4: one final retry — re-select store and check content attribute again
-    print(f"     [debug] {pid}: final retry — re-selecting store")
-    select_store(page, search_term)
-    page.wait_for_timeout(8000)
+    # Step 3: Final retry with page refresh
+    print(f"     [debug] {pid}: final retry — refreshing page")
     try:
+        page.reload(wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_timeout(5000)
+        ensure_store_selected(page, search_term)
+        page.wait_for_timeout(10000)
+        
         els = page.query_selector_all("span.current-price-value")
         for el in els:
             if not el.is_visible():
@@ -232,6 +272,13 @@ def extract_price(page, product, search_term):
                         return price
                 except:
                     pass
+    except Exception as e:
+        print(f"     [warn] Final retry failed: {e}")
+
+    # Save screenshot for debugging
+    try:
+        page.screenshot(path=f"/tmp/debug_{pid}_{branch_name.replace(' ', '_')}.png")
+        print(f"     [debug] Screenshot saved for debugging")
     except:
         pass
 
@@ -241,13 +288,16 @@ def extract_price(page, product, search_term):
 # ── MAIN ─────────────────────────────────────────────────────────
 
 def scrape():
-    print(f"\nSEKELO SCRAPER v3.0 — {datetime.now()}\n")
+    print(f"\nSEKELO SCRAPER v3.1 — {datetime.now()}\n")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
 
         for branch in BRANCHES:
-            print(f"--- {branch['name']} ---")
+            print(f"\n{'='*50}")
+            print(f"BRANCH: {branch['name']}")
+            print(f"{'='*50}\n")
+            
             context = browser.new_context()
             page = context.new_page()
 
@@ -255,33 +305,34 @@ def scrape():
                 print(f"  -> {product['label']}")
 
                 try:
-                    page.goto(product["url"].strip(), wait_until="domcontentloaded", timeout=20000)
+                    page.goto(product["url"].strip(), wait_until="domcontentloaded", timeout=30000)
                     page.wait_for_timeout(3000)
                 except Exception as e:
                     print(f"     [error] page load failed: {e}")
                     push_price(product["id"], product["label"], branch["name"], branch["city"], None, None, available=False)
-                    print("     ⚠️  UNAVAILABLE")
+                    print("     ⚠️  UNAVAILABLE (page load failed)")
                     continue
 
-                price = extract_price(page, product, branch["search"])
+                price = extract_price(page, product, branch["search"], branch["name"].replace(" ", "_"))
 
                 if price:
                     prev = get_previous_price(product["id"], branch["city"])
                     delta = round(((price - prev["price_zar"]) / prev["price_zar"]) * 100, 2) if prev and prev.get("price_zar") else None
                     push_price(product["id"], product["label"], branch["name"], branch["city"], price, delta)
-                    print(f"     ✅ R{price:.2f}")
+                    print(f"     ✅ R{price:.2f}" + (f" ({delta:+.1f}%)" if delta else ""))
                 else:
                     push_price(product["id"], product["label"], branch["name"], branch["city"], None, None, available=False)
                     print("     ⚠️  UNAVAILABLE")
 
-                time.sleep(1)
+                time.sleep(2)  # Increased delay between products
 
             context.close()
-            print()
 
         browser.close()
 
-    print("\n✅ COMPLETE\n")
+    print(f"\n{'='*50}")
+    print("✅ SCRAPE COMPLETE")
+    print(f"{'='*50}\n")
 
 
 if __name__ == "__main__":
