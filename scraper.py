@@ -39,8 +39,8 @@ PRODUCTS = [
     {"id": "rebar", "label": "Steel Rebar Y12", "url": "https://www.cashbuild.co.za/steel-sections/476005-reinforcing-rod-y12mm-x-6m-450-mpa", "ajax_wait": 10, "min_price": 100, "max_price": 200, "needs_store_select": False},
     {"id": "timber", "label": "Structural Timber S5 38x114 6.0m", "url": "https://www.cashbuild.co.za/timber/19160-structural-timber-sabs-untreated-38x114-60m", "ajax_wait": 15, "min_price": 180, "max_price": 300, "needs_store_select": False},
     {"id": "bricks", "label": "Concrete Block MB-140", "url": "https://www.cashbuild.co.za/cement-blocks/1099412-block-concrete-mb-140", "ajax_wait": 25, "min_price": 8, "max_price": 18, "needs_store_select": True},
-    {"id": "bricks_maxi", "label": "Cement Brick Solid Maxi", "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi", "ajax_wait": 20, "min_price": 5, "max_price": 15, "needs_store_select": True},
-    {"id": "concrete_mix", "label": "Concrete Mix 40kg", "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag", "ajax_wait": 20, "min_price": 35, "max_price": 70, "needs_store_select": True},
+    {"id": "bricks_maxi", "label": "Cement Brick Solid Maxi", "url": "https://www.cashbuild.co.za/cement-plaster-bricks/1099234-brick-cement-solid-maxi", "ajax_wait": 20, "min_price": 0, "max_price": 500, "needs_store_select": True},
+    {"id": "concrete_mix", "label": "Concrete Mix 40kg", "url": "https://www.cashbuild.co.za/premix/325-concrete-mix-40kg-bag", "ajax_wait": 20, "min_price": 0, "max_price": 500, "needs_store_select": True},
 ]
 
 # ── SUPABASE ────────────────────────────────────────────────────
@@ -160,6 +160,7 @@ def extract_price(page, product):
                 if match:
                     try:
                         price = float(match.group())
+                        print(f"     [debug] {product['id']} candidate: R{price}")
                         if min_price <= price <= max_price:
                             print(f"     [debug] {product['id']}: R{price} via .price text")
                             return price
