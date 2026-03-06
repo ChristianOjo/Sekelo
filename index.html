@@ -1,373 +1,423 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SEKELO — Construction Material Price Intelligence</title>
+<title>Sekelo — Construction Price Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root {
-  --bg: #07090C;
-  --surface: #0D1117;
-  --surface-2: #131B24;
-  --border: #1C2A38;
-  --border-2: #243447;
-  --gold: #E8A020;
-  --gold-dim: rgba(232,160,32,0.12);
-  --green: #00C875;
-  --green-dim: rgba(0,200,117,0.1);
-  --red: #FF4560;
-  --red-dim: rgba(255,69,96,0.1);
-  --text: #C9D1D9;
-  --text-2: #7A8B9A;
-  --text-3: #3D4F60;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'IBM Plex Sans', sans-serif;
-  --display: 'Bebas Neue', cursive;
+  --bg:        #F7F4EF;
+  --surface:   #FFFFFF;
+  --surface-2: #F2EEE8;
+  --border:    #E2D9CC;
+  --border-2:  #D0C4B3;
+  --accent:    #8B6914;
+  --accent-bg: rgba(139,105,20,0.06);
+  --up:        #B83232;
+  --up-bg:     rgba(184,50,50,0.06);
+  --down:      #2D6B4A;
+  --down-bg:   rgba(45,107,74,0.06);
+  --text:      #1A1814;
+  --text-2:    #6B5E4E;
+  --text-3:    #A89880;
+  --text-4:    #C8BAA8;
+  --serif:     'Cormorant Garamond', Georgia, serif;
+  --sans:      'DM Sans', sans-serif;
+  --mono:      'JetBrains Mono', monospace;
+  --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
 }
+[data-theme="dark"] {
+  --bg:        #0C1018;
+  --surface:   #131A24;
+  --surface-2: #1A2330;
+  --border:    #1E2C3C;
+  --border-2:  #253545;
+  --accent:    #C8A55A;
+  --accent-bg: rgba(200,165,90,0.08);
+  --up:        #E05555;
+  --up-bg:     rgba(224,85,85,0.08);
+  --down:      #3DAA6E;
+  --down-bg:   rgba(61,170,110,0.08);
+  --text:      #E8E2D5;
+  --text-2:    #9A9080;
+  --text-3:    #5A5245;
+  --text-4:    #3A342C;
+  --shadow:    0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+}
+
 * { margin:0; padding:0; box-sizing:border-box; }
 html { font-size:14px; }
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
+  font-weight: 300;
   min-height: 100vh;
-  background-image:
-    linear-gradient(rgba(232,160,32,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232,160,32,0.015) 1px, transparent 1px);
-  background-size: 40px 40px;
+  transition: background 0.25s, color 0.25s;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* HEADER */
+/* ── HEADER ── */
 .header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 0 32px;
+  padding: 0 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
+  height: 60px;
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: var(--shadow);
+  transition: background 0.25s, border-color 0.25s;
 }
-.header-left { display:flex; align-items:center; gap:20px; }
+.header-left { display:flex; align-items:baseline; gap:16px; }
 .logo {
-  font-family: var(--display);
-  font-size: 28px;
-  letter-spacing: 3px;
-  color: var(--gold);
-  line-height: 1;
-}
-.logo-divider {
-  width: 1px;
-  height: 28px;
-  background: var(--border-2);
-}
-.logo-sub {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-2);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  line-height: 1.6;
-}
-.header-right { display:flex; align-items:center; gap:16px; }
-.last-updated {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-3);
-  letter-spacing: 0.5px;
-}
-.last-updated span { color: var(--text-2); }
-.btn-pdf {
-  background: transparent;
-  border: 1px solid var(--gold);
-  color: var(--gold);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  padding: 7px 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-transform: uppercase;
-}
-.btn-pdf:hover { background: var(--gold); color: var(--bg); }
-
-/* STATS BAR */
-.stats-bar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 32px;
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
-}
-.stat-item {
-  padding: 12px 32px 12px 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-right: 1px solid var(--border);
-  margin-right: 32px;
-  white-space: nowrap;
-  opacity: 0;
-  animation: fadeUp 0.4s forwards;
-}
-.stat-item:last-child { border-right: none; }
-.stat-item:nth-child(1) { animation-delay: 0.1s; }
-.stat-item:nth-child(2) { animation-delay: 0.2s; }
-.stat-item:nth-child(3) { animation-delay: 0.3s; }
-.stat-item:nth-child(4) { animation-delay: 0.4s; }
-.stat-label {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--text-3);
-  text-transform: uppercase;
-}
-.stat-value {
-  font-family: var(--mono);
-  font-size: 14px;
+  font-family: var(--serif);
+  font-size: 22px;
   font-weight: 600;
+  letter-spacing: 0.5px;
   color: var(--text);
 }
-.stat-value.gold { color: var(--gold); }
-.stat-value.green { color: var(--green); }
-.stat-value.red { color: var(--red); }
+.logo-rule {
+  width: 1px;
+  height: 14px;
+  background: var(--border-2);
+  align-self: center;
+}
+.logo-sub {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--text-3);
+  letter-spacing: 0.3px;
+}
+.header-right { display:flex; align-items:center; gap:20px; }
+.last-updated {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+  letter-spacing: 0.3px;
+}
+.last-updated b { color: var(--text-2); font-weight: 500; }
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.btn-export {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--accent);
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-export:hover { background: var(--accent); color: var(--surface); }
 
-/* MAIN CONTENT */
-.main { padding: 32px; }
-
-.section-header {
+/* ── DATE STRIP ── */
+.date-strip {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
 }
-.section-title {
-  font-family: var(--mono);
+.date-strip-left {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-3);
+}
+.date-strip-right {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.strip-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.strip-stat-label {
+  font-family: var(--sans);
   font-size: 10px;
-  letter-spacing: 3px;
+  font-weight: 400;
   color: var(--text-3);
   text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.strip-stat-value {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.strip-stat-value.accent { color: var(--accent); }
+.strip-divider { width: 1px; height: 12px; background: var(--border); }
+
+/* ── MAIN ── */
+.main { padding: 32px 40px; max-width: 1400px; }
+
+.section-label {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-3);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
-/* TABLE */
-.table-wrap {
+/* ── TABLE ── */
+.table-container {
   background: var(--surface);
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   overflow-x: auto;
   opacity: 0;
-  animation: fadeUp 0.5s 0.3s forwards;
+  animation: fadeIn 0.4s 0.1s ease forwards;
+  transition: background 0.25s, border-color 0.25s;
 }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--mono);
-}
-thead tr {
-  border-bottom: 1px solid var(--border-2);
-}
-thead th {
+table { width: 100%; border-collapse: collapse; }
+thead { border-bottom: 2px solid var(--border); }
+.thead-city {
+  font-family: var(--sans);
   font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--text-3);
-  text-transform: uppercase;
-  padding: 12px 16px;
-  text-align: left;
   font-weight: 500;
-  white-space: nowrap;
-}
-thead th.right { text-align: right; }
-thead th.center { text-align: center; }
-.th-group {
-  padding: 6px 16px 0;
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: var(--text-3);
-  border-bottom: none !important;
-}
-.city-header {
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  padding: 10px 20px 4px;
   text-align: center;
-  padding: 4px 16px;
-  border-bottom: 1px solid var(--gold-dim);
+  border-bottom: 1px solid var(--accent-bg);
+}
+.thead-city.sep { border-left: 1px solid var(--border); }
+th {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-3);
+  padding: 6px 20px 10px;
+  text-align: left;
   white-space: nowrap;
 }
+th.r { text-align: right; }
+th.c { text-align: center; }
+th.sep { border-left: 1px solid var(--border); }
 tbody tr {
   border-bottom: 1px solid var(--border);
   transition: background 0.15s;
-  opacity: 0;
-  animation: fadeIn 0.3s forwards;
 }
-tbody tr:hover { background: var(--surface-2); }
 tbody tr:last-child { border-bottom: none; }
-tbody tr.alert-row { background: rgba(232,160,32,0.04); }
-tbody tr.alert-row:hover { background: rgba(232,160,32,0.08); }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr.spike { background: var(--accent-bg); }
+tbody tr.spike:hover { background: rgba(139,105,20,0.1); }
 td {
-  padding: 14px 16px;
+  padding: 16px 20px;
+  font-family: var(--sans);
   font-size: 12px;
+  font-weight: 300;
   color: var(--text);
   vertical-align: middle;
   white-space: nowrap;
 }
-td.right { text-align: right; }
-td.center { text-align: center; }
-.material-name {
+td.r { text-align: right; }
+td.c { text-align: center; }
+td.sep { border-left: 1px solid var(--border); }
+
+.mat-name {
+  font-family: var(--serif);
+  font-size: 14px;
   font-weight: 500;
   color: var(--text);
-  font-size: 12px;
+  letter-spacing: 0.1px;
+}
+.mat-id {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-4);
+  margin-top: 3px;
   letter-spacing: 0.3px;
 }
-.material-sub {
+.source-pill {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  background: var(--surface-2);
+}
+.price-main {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.price-sub {
+  font-family: var(--mono);
   font-size: 10px;
   color: var(--text-3);
   margin-top: 2px;
-  letter-spacing: 0.5px;
 }
-.source-tag {
-  display: inline-block;
-  font-size: 9px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border: 1px solid var(--border-2);
-  color: var(--text-2);
-  background: var(--surface-2);
-}
-.price-zar { font-weight: 600; color: var(--text); font-size: 13px; }
-.price-szl { font-size: 11px; color: var(--text-2); margin-top: 2px; }
-.unavailable { color: var(--text-3); font-size: 11px; letter-spacing: 1px; }
+.na { font-family: var(--mono); font-size: 11px; color: var(--text-4); }
 
-.delta {
+.delta-up {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--up);
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 600;
+  gap: 3px;
 }
-.delta.up { color: var(--red); }
-.delta.down { color: var(--green); }
-.delta.flat { color: var(--text-3); }
-.delta-arrow { font-size: 10px; }
-
-.alert-badge {
+.delta-down {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--down);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+.delta-flat {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-4);
+  text-align: right;
+}
+.spike-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--gold);
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
+  background: var(--accent);
   margin-left: 6px;
+  vertical-align: middle;
   animation: pulse 2s infinite;
 }
 
-.sparkline-cell { padding: 14px 16px; }
+/* ── SPARKLINE ── */
+.spark { display: block; }
 
-/* COLUMN SEPARATORS */
-.col-sep { border-left: 1px solid var(--border-2) !important; }
-
-/* FOOTER */
+/* ── FOOTER ── */
 .footer {
-  margin-top: 32px;
-  padding: 20px 32px;
+  padding: 20px 40px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: 32px;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
 }
-.footer-note {
-  font-family: var(--mono);
+.footer-text {
+  font-family: var(--sans);
   font-size: 10px;
-  color: var(--text-3);
-  letter-spacing: 0.5px;
+  font-weight: 300;
+  color: var(--text-4);
 }
-.footer-note span { color: var(--text-2); }
+.footer-text b { color: var(--text-3); font-weight: 400; }
 
-/* LOADING */
-.loading-state {
-  padding: 64px 32px;
+/* ── STATES ── */
+.state-box {
+  padding: 64px 40px;
   text-align: center;
 }
-.loading-dots {
-  display: inline-flex;
-  gap: 6px;
-  margin-top: 16px;
-}
-.loading-dots span {
-  width: 6px;
-  height: 6px;
-  background: var(--gold);
-  border-radius: 50%;
-  animation: blink 1.2s infinite;
-}
-.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
-.loading-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--text-3);
-  text-transform: uppercase;
-  margin-top: 12px;
-}
-
-/* EMPTY STATE */
-.empty-state {
-  padding: 80px 32px;
-  text-align: center;
-}
-.empty-title {
-  font-family: var(--display);
-  font-size: 24px;
-  letter-spacing: 3px;
+.state-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-style: italic;
   color: var(--text-3);
   margin-bottom: 8px;
 }
-.empty-sub {
-  font-family: var(--mono);
+.state-sub {
+  font-family: var(--sans);
   font-size: 11px;
-  color: var(--text-3);
-  letter-spacing: 1px;
+  color: var(--text-4);
+  letter-spacing: 0.3px;
 }
+.loading-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.loading-row span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: blink 1.2s infinite;
+}
+.loading-row span:nth-child(2) { animation-delay: 0.2s; }
+.loading-row span:nth-child(3) { animation-delay: 0.4s; }
 
-/* ANIMATIONS */
-@keyframes fadeUp {
-  from { opacity:0; transform: translateY(8px); }
-  to { opacity:1; transform: translateY(0); }
-}
+/* ── ANIMATIONS ── */
 @keyframes fadeIn {
-  from { opacity:0; }
-  to { opacity:1; }
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
 }
 @keyframes blink {
-  0%,80%,100% { opacity:0.2; }
-  40% { opacity:1; }
+  0%,80%,100% { opacity:0.15; }
+  40%         { opacity:1; }
 }
 @keyframes pulse {
-  0%,100% { opacity:1; transform: scale(1); }
-  50% { opacity:0.5; transform: scale(0.8); }
+  0%,100% { opacity:1; }
+  50%     { opacity:0.35; }
 }
 
-/* SCROLLBAR */
-::-webkit-scrollbar { width:4px; height:4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border-2); }
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border-2); }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .header { padding: 0 16px; }
-  .main { padding: 16px; }
-  .stats-bar { padding: 0 16px; }
-  .logo-sub { display: none; }
+@media(max-width:768px) {
+  .header { padding:0 20px; }
+  .main { padding:20px; }
+  .date-strip { padding:7px 20px; }
+  .footer { padding:16px 20px; }
+  .logo-sub, .last-updated { display:none; }
 }
 </style>
 </head>
@@ -375,293 +425,228 @@ td.center { text-align: center; }
 
 <header class="header">
   <div class="header-left">
-    <div class="logo">SEKELO</div>
-    <div class="logo-divider"></div>
-    <div class="logo-sub">
-      Construction Material<br>Price Intelligence
-    </div>
+    <div class="logo">Sekelo</div>
+    <div class="logo-rule"></div>
+    <div class="logo-sub">Construction Price Intelligence · Eswatini</div>
   </div>
   <div class="header-right">
-    <div class="last-updated" id="lastUpdated">Loading...</div>
-    <button class="btn-pdf" onclick="exportPDF()">↓ Export PDF</button>
+    <div class="last-updated" id="lastUpdated">—</div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">☀</button>
+    <button class="btn-export" onclick="exportPDF()">Export PDF</button>
   </div>
 </header>
 
-<div class="stats-bar" id="statsBar">
-  <div class="stat-item">
-    <div>
-      <div class="stat-label">Materials</div>
-      <div class="stat-value gold" id="statMaterials">—</div>
+<div class="date-strip">
+  <div class="date-strip-left" id="dateLabel">—</div>
+  <div class="date-strip-right">
+    <div class="strip-stat">
+      <span class="strip-stat-label">Materials</span>
+      <span class="strip-stat-value accent" id="statMaterials">—</span>
     </div>
-  </div>
-  <div class="stat-item">
-    <div>
-      <div class="stat-label">Sources</div>
-      <div class="stat-value" id="statSources">—</div>
+    <div class="strip-divider"></div>
+    <div class="strip-stat">
+      <span class="strip-stat-label">Border Premium</span>
+      <span class="strip-stat-value">20%</span>
     </div>
-  </div>
-  <div class="stat-item">
-    <div>
-      <div class="stat-label">Biggest Mover</div>
-      <div class="stat-value" id="statMover">—</div>
+    <div class="strip-divider"></div>
+    <div class="strip-stat">
+      <span class="strip-stat-label">Biggest Mover</span>
+      <span class="strip-stat-value" id="statMover">—</span>
     </div>
-  </div>
-  <div class="stat-item">
-    <div>
-      <div class="stat-label">Border Premium</div>
-      <div class="stat-value gold">20%</div>
+    <div class="strip-divider"></div>
+    <div class="strip-stat">
+      <span class="strip-stat-label">Sources</span>
+      <span class="strip-stat-value" id="statSources">—</span>
     </div>
   </div>
 </div>
 
 <main class="main">
-  <div class="section-header">
-    <div class="section-title">Weekly Price Index — All Tracked Materials</div>
-  </div>
-
-  <div class="table-wrap" id="tableWrap">
-    <div class="loading-state">
-      <div class="loading-dots">
-        <span></span><span></span><span></span>
-      </div>
-      <div class="loading-label">Fetching price data</div>
+  <div class="section-label">Weekly Price Index</div>
+  <div class="table-container" id="tableContainer">
+    <div class="state-box">
+      <div class="loading-row"><span></span><span></span><span></span></div>
+      <div class="state-sub">Retrieving price data</div>
     </div>
   </div>
 </main>
 
 <footer class="footer">
-  <div class="footer-note">
-    Border premium: <span>20%</span> applied to ZAR → SZL conversion &nbsp;·&nbsp;
-    Prices sourced from South African retailers &nbsp;·&nbsp;
-    Updated weekly by Sekelo
+  <div class="footer-text">
+    Border premium of <b>20%</b> applied to all ZAR → SZL conversions &nbsp;·&nbsp;
+    Prices sourced from South African building retailers &nbsp;·&nbsp;
+    Updated weekly
   </div>
-  <div class="footer-note">
-    <span>Sekelo</span> — Eswatini Construction Intelligence &nbsp;·&nbsp; 2026
-  </div>
+  <div class="footer-text"><b>Sekelo</b> · Eswatini Construction Intelligence · 2026</div>
 </footer>
 
 <script>
 const SUPABASE_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
-const BORDER_PREMIUM = 0.20;
-
 const CITIES = ['Joburg', 'Nelspruit'];
-
-async function fetchPrices() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/prices?order=timestamp.desc&limit=2000&select=*`,
-    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-  );
-  if (!res.ok) throw new Error('Fetch failed');
-  return res.json();
-}
-
-function sparklineSVG(data, width=72, height=28) {
-  if (!data || data.length < 2) {
-    return `<svg width="${width}" height="${height}"><line x1="0" y1="${height/2}" x2="${width}" y2="${height/2}" stroke="#1E2A36" stroke-width="1"/></svg>`;
-  }
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * (width - 2) + 1;
-    const y = (height - 4) - ((v - min) / range) * (height - 4) + 2;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  const last = data[data.length - 1];
-  const first = data[0];
-  const color = last > first ? '#FF4560' : last < first ? '#00C875' : '#3D4F60';
-  const lastX = width - 1;
-  const lastY = (height - 4) - ((last - min) / range) * (height - 4) + 2;
-  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${lastX}" cy="${lastY}" r="2" fill="${color}"/>
-  </svg>`;
-}
-
-function fmtZAR(v) {
-  if (!v && v !== 0) return '—';
-  return `R${parseFloat(v).toFixed(2)}`;
-}
-function fmtSZL(zarPrice) {
-  if (!zarPrice && zarPrice !== 0) return '—';
-  const szl = parseFloat(zarPrice) * (1 + BORDER_PREMIUM);
-  return `E${szl.toFixed(2)}`;
-}
-function fmtDelta(current, previous) {
-  if (!current || !previous) return { html: '<span class="delta flat">—</span>', value: null };
-  const pct = ((current - previous) / previous) * 100;
-  if (Math.abs(pct) < 0.05) return { html: `<span class="delta flat">0.0% <span class="delta-arrow">→</span></span>`, value: 0 };
-  const cls = pct > 0 ? 'up' : 'down';
-  const arrow = pct > 0 ? '↑' : '↓';
-  return {
-    html: `<span class="delta ${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(1)}% <span class="delta-arrow">${arrow}</span></span>`,
-    value: pct
-  };
-}
-function timeAgo(ts) {
-  const diff = Date.now() - new Date(ts).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
-  const weeks = Math.floor(days / 7);
-  return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
-}
-
+const CITY_LABELS = { Joburg: 'Johannesburg — Southgate', Nelspruit: 'Nelspruit Plaza' };
+const BORDER = 0.20;
 let allData = [];
 
-function processData(rows) {
-  // Group by material_id
-  const materialMap = {};
-  rows.forEach(row => {
-    if (!materialMap[row.material_id]) {
-      materialMap[row.material_id] = {
-        id: row.material_id,
-        label: row.material,
-        rows: []
-      };
-    }
-    materialMap[row.material_id].rows.push(row);
+// Theme
+function getTheme() { return localStorage.getItem('sekelo_theme') || 'light'; }
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('sekelo_theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀' : '☾';
+}
+(function() {
+  const t = getTheme();
+  document.documentElement.dataset.theme = t;
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('themeBtn').textContent = t === 'dark' ? '☀' : '☾';
   });
+})();
 
-  // For each material, get latest per city and history
-  return Object.values(materialMap).map(mat => {
+// Data
+async function fetchData() {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/prices?order=timestamp.desc&limit=2000&select=*`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!r.ok) throw new Error('Failed to load');
+  return r.json();
+}
+
+function processData(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (!map[r.material_id]) map[r.material_id] = { id: r.material_id, label: r.material, rows: [] };
+    map[r.material_id].rows.push(r);
+  });
+  return Object.values(map).map(mat => {
     const byCity = {};
     CITIES.forEach(city => {
-      const cityRows = mat.rows.filter(r => r.city === city && r.available !== false);
-      // Latest
-      const latest = cityRows[0] || null;
-      // Previous (for delta — find entry from ~7 days ago)
-      let previous = null;
-      if (latest && cityRows.length > 1) {
-        const latestDate = new Date(latest.timestamp);
-        // Find entry closest to 7 days before latest
-        const target = latestDate.getTime() - (7 * 86400000);
-        const prev = cityRows.slice(1).reduce((best, r) => {
-          const diff = Math.abs(new Date(r.timestamp).getTime() - target);
-          const bestDiff = best ? Math.abs(new Date(best.timestamp).getTime() - target) : Infinity;
-          return diff < bestDiff ? r : best;
+      const cr = mat.rows.filter(r => r.city === city && r.available !== false);
+      const latest = cr[0] || null;
+      let prev = null;
+      if (latest && cr.length > 1) {
+        const t = new Date(latest.timestamp).getTime() - 7 * 86400000;
+        prev = cr.slice(1).reduce((b, r) => {
+          const d = Math.abs(new Date(r.timestamp).getTime() - t);
+          return (!b || d < Math.abs(new Date(b.timestamp).getTime() - t)) ? r : b;
         }, null);
-        previous = prev;
       }
-      // History for sparkline (last 8 available entries)
-      const history = cityRows.slice(0, 8).map(r => r.price_zar).filter(Boolean).reverse();
-      byCity[city] = { latest, previous, history };
+      const hist = cr.slice(0, 8).map(r => r.price_zar).filter(Boolean).reverse();
+      byCity[city] = { latest, prev, hist };
     });
     return { ...mat, byCity };
   });
 }
 
-function renderTable(materials) {
-  if (!materials.length) {
-    return `<div class="empty-state">
-      <div class="empty-title">No Price Data</div>
-      <div class="empty-sub">Add prices via the admin panel to get started</div>
-    </div>`;
-  }
+function spark(data, w=68, h=26) {
+  if (!data || data.length < 2) return `<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--border)" stroke-width="1"/></svg>`;
+  const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
+  const pts = data.map((v,i) => {
+    const x = (i/(data.length-1))*(w-4)+2;
+    const y = (h-6)-((v-min)/range)*(h-6)+3;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = data[data.length-1], first = data[0];
+  const col = last > first ? 'var(--up)' : last < first ? 'var(--down)' : 'var(--text-4)';
+  const lx = w-2, ly = (h-6)-((last-min)/range)*(h-6)+3;
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.8"/>
+    <circle cx="${lx}" cy="${ly}" r="2" fill="${col}"/>
+  </svg>`;
+}
 
-  // Find latest timestamp overall
+function fmtZAR(v) { return v ? `R ${parseFloat(v).toFixed(2)}` : null; }
+function fmtSZL(v) { return v ? `E ${(parseFloat(v)*(1+BORDER)).toFixed(2)}` : null; }
+function fmtDelta(cur, prv) {
+  if (!cur || !prv) return `<span class="delta-flat">—</span>`;
+  const p = ((cur-prv)/prv)*100;
+  if (Math.abs(p) < 0.05) return `<span class="delta-flat">—</span>`;
+  const cls = p > 0 ? 'delta-up' : 'delta-down';
+  const arrow = p > 0 ? '↑' : '↓';
+  return `<span class="${cls}">${arrow} ${Math.abs(p).toFixed(1)}%</span>`;
+}
+
+function renderTable(mats) {
+  if (!mats.length) return `<div class="state-box"><div class="state-title">No data yet</div><div class="state-sub">Enter prices via the admin panel to populate this dashboard</div></div>`;
+
   let latestTs = null;
-  materials.forEach(m => {
-    CITIES.forEach(city => {
-      const ts = m.byCity[city]?.latest?.timestamp;
-      if (ts && (!latestTs || ts > latestTs)) latestTs = ts;
-    });
-  });
+  mats.forEach(m => CITIES.forEach(c => {
+    const ts = m.byCity[c]?.latest?.timestamp;
+    if (ts && (!latestTs || ts > latestTs)) latestTs = ts;
+  }));
 
-  const sources = [...new Set(materials.flatMap(m =>
-    CITIES.map(c => m.byCity[c]?.latest?.source).filter(Boolean)
-  ))];
-
-  // Update stats
-  document.getElementById('statMaterials').textContent = materials.length;
-  document.getElementById('statSources').textContent = sources.join(' / ') || '—';
-
-  // Find biggest mover
-  let biggestMover = null, biggestPct = 0;
-  materials.forEach(m => {
-    CITIES.forEach(city => {
-      const { latest, previous } = m.byCity[city];
-      if (latest && previous) {
-        const pct = Math.abs(((latest.price_zar - previous.price_zar) / previous.price_zar) * 100);
-        if (pct > biggestPct) {
-          biggestPct = pct;
-          const dir = latest.price_zar > previous.price_zar ? '+' : '';
-          const cls = latest.price_zar > previous.price_zar ? 'red' : 'green';
-          biggestMover = { label: m.label.split(' ').slice(0,2).join(' '), pct: ((latest.price_zar - previous.price_zar) / previous.price_zar * 100), cls };
-        }
-      }
-    });
-  });
-  if (biggestMover) {
-    const moverEl = document.getElementById('statMover');
-    moverEl.innerHTML = `<span style="color:var(--text-2)">${biggestMover.label}</span> <span style="color:var(--${biggestMover.cls})">${biggestMover.pct > 0 ? '+' : ''}${biggestMover.pct.toFixed(1)}%</span>`;
-  }
+  const srcs = [...new Set(mats.flatMap(m => CITIES.map(c => m.byCity[c]?.latest?.source)).filter(Boolean))];
+  document.getElementById('statMaterials').textContent = mats.length;
+  document.getElementById('statSources').textContent = srcs.length ? srcs.join(', ') : '—';
 
   if (latestTs) {
-    document.getElementById('lastUpdated').innerHTML =
-      `Last updated: <span>${new Date(latestTs).toLocaleDateString('en-ZA', {day:'2-digit',month:'short',year:'numeric'})}</span> &nbsp;·&nbsp; <span>${timeAgo(latestTs)}</span>`;
+    const d = new Date(latestTs);
+    document.getElementById('lastUpdated').innerHTML = `Updated <b>${d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})}</b>`;
+    document.getElementById('dateLabel').textContent = d.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   }
 
-  let rows = '';
-  materials.forEach((mat, idx) => {
-    // Determine if any city has an alert (>5% move)
-    let isAlert = false;
-    CITIES.forEach(city => {
-      const { latest, previous } = mat.byCity[city];
-      if (latest && previous) {
-        const pct = Math.abs(((latest.price_zar - previous.price_zar) / previous.price_zar) * 100);
-        if (pct >= 5) isAlert = true;
+  // Biggest mover
+  let bigPct = 0, bigLabel = '—', bigDir = '';
+  mats.forEach(m => CITIES.forEach(c => {
+    const { latest, prev } = m.byCity[c];
+    if (latest?.price_zar && prev?.price_zar) {
+      const p = ((latest.price_zar - prev.price_zar)/prev.price_zar)*100;
+      if (Math.abs(p) > bigPct) {
+        bigPct = Math.abs(p);
+        bigDir = p > 0 ? '↑' : '↓';
+        bigLabel = m.label.split(' ').slice(0,2).join(' ');
+      }
+    }
+  }));
+  if (bigLabel !== '—') document.getElementById('statMover').textContent = `${bigLabel} ${bigDir}${bigPct.toFixed(1)}%`;
+
+  const rows = mats.map((mat, idx) => {
+    let isSpike = false;
+    CITIES.forEach(c => {
+      const { latest, prev } = mat.byCity[c];
+      if (latest?.price_zar && prev?.price_zar) {
+        if (Math.abs(((latest.price_zar-prev.price_zar)/prev.price_zar)*100) >= 5) isSpike = true;
       }
     });
+    const src = CITIES.map(c => mat.byCity[c]?.latest?.source).filter(Boolean)[0] || '—';
+    const spikeDot = isSpike ? '<span class="spike-dot" title="Price moved ≥5% this week"></span>' : '';
 
-    const alertBadge = isAlert ? '<span class="alert-badge" title="Price moved >5% this week"></span>' : '';
-    const source = CITIES.map(c => mat.byCity[c]?.latest?.source).filter(Boolean)[0] || '—';
-
-    // Build city columns
     let cityCols = '';
     CITIES.forEach((city, ci) => {
-      const { latest, previous, history } = mat.byCity[city];
-      const available = latest && latest.available !== false;
-      const zar = available ? latest?.price_zar : null;
-      const prevZar = previous?.price_zar;
-      const delta = fmtDelta(zar, prevZar);
-      const sepClass = ci === 0 ? 'col-sep' : '';
-
+      const { latest, prev, hist } = mat.byCity[city];
+      const zar = latest?.price_zar;
+      const sep = ci === 0 ? 'sep' : '';
       cityCols += `
-        <td class="right ${sepClass}">
-          ${available && zar ? `<div class="price-zar">${fmtZAR(zar)}</div><div class="price-szl">${fmtSZL(zar)}</div>` : `<span class="unavailable">OUT OF STOCK</span>`}
+        <td class="r ${sep}">
+          ${zar ? `<div class="price-main">${fmtZAR(zar)}</div><div class="price-sub">${fmtSZL(zar)}</div>` : `<span class="na">—</span>`}
         </td>
-        <td class="right">${delta.html}</td>
-        <td class="center sparkline-cell">${sparklineSVG(history)}</td>
-      `;
+        <td class="r">${fmtDelta(zar, prev?.price_zar)}</td>
+        <td class="c">${spark(hist)}</td>`;
     });
 
-    rows += `<tr class="${isAlert ? 'alert-row' : ''}" style="animation-delay:${idx * 0.05}s">
-      <td>
-        <div class="material-name">${mat.label}${alertBadge}</div>
-      </td>
-      <td><span class="source-tag">${source}</span></td>
+    return `<tr class="${isSpike?'spike':''}" style="animation:fadeIn 0.3s ${idx*0.04+0.1}s both">
+      <td><div class="mat-name">${mat.label}${spikeDot}</div></td>
+      <td><span class="source-pill">${src}</span></td>
       ${cityCols}
     </tr>`;
-  });
+  }).join('');
 
   return `<table>
     <thead>
       <tr>
-        <th rowspan="2" style="min-width:200px">Material</th>
+        <th rowspan="2" style="min-width:220px">Material</th>
         <th rowspan="2">Source</th>
-        <th class="city-header col-sep" colspan="3">Joburg — Southgate</th>
-        <th class="city-header col-sep" colspan="3">Nelspruit Plaza</th>
+        <th class="thead-city sep" colspan="3">${CITY_LABELS['Joburg']}</th>
+        <th class="thead-city sep" colspan="3">${CITY_LABELS['Nelspruit']}</th>
       </tr>
       <tr>
-        <th class="right col-sep" style="min-width:110px">ZAR / SZL</th>
-        <th class="right" style="min-width:90px">WoW Change</th>
-        <th class="center" style="min-width:90px">8-Wk Trend</th>
-        <th class="right col-sep" style="min-width:110px">ZAR / SZL</th>
-        <th class="right" style="min-width:90px">WoW Change</th>
-        <th class="center" style="min-width:90px">8-Wk Trend</th>
+        <th class="r sep" style="min-width:120px">ZAR / SZL</th>
+        <th class="r" style="min-width:80px">WoW</th>
+        <th class="c" style="min-width:80px">Trend</th>
+        <th class="r sep" style="min-width:120px">ZAR / SZL</th>
+        <th class="r" style="min-width:80px">WoW</th>
+        <th class="c" style="min-width:80px">Trend</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -670,79 +655,59 @@ function renderTable(materials) {
 
 async function init() {
   try {
-    allData = await fetchPrices();
-    const materials = processData(allData);
-    document.getElementById('tableWrap').innerHTML = renderTable(materials);
-  } catch (e) {
-    document.getElementById('tableWrap').innerHTML = `
-      <div class="empty-state">
-        <div class="empty-title">Connection Error</div>
-        <div class="empty-sub" style="color:var(--red)">${e.message}</div>
-      </div>`;
+    allData = await fetchData();
+    const mats = processData(allData);
+    document.getElementById('tableContainer').innerHTML = renderTable(mats);
+  } catch(e) {
+    document.getElementById('tableContainer').innerHTML = `<div class="state-box"><div class="state-title">Connection error</div><div class="state-sub" style="color:var(--up)">${e.message}</div></div>`;
   }
 }
 
 async function exportPDF() {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const bg = isDark ? [12,16,24] : [247,244,239];
+  const fg = isDark ? [232,226,213] : [26,24,20];
 
-  // Header
-  doc.setFillColor(7, 9, 12);
-  doc.rect(0, 0, 297, 297, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(28);
-  doc.setTextColor(232, 160, 32);
-  doc.text('SEKELO', 14, 20);
-  doc.setFontSize(9);
-  doc.setTextColor(150, 150, 150);
-  doc.text('CONSTRUCTION MATERIAL PRICE INTELLIGENCE — ESWATINI BORDER MARKET', 14, 27);
-  doc.setFontSize(8);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA', {day:'2-digit', month:'long', year:'numeric'})}   |   Border Premium: 20%`, 14, 33);
+  doc.setFillColor(...bg); doc.rect(0,0,297,210,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...fg);
+  doc.text('Sekelo', 14, 18);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(139,105,20);
+  doc.text('CONSTRUCTION PRICE INTELLIGENCE — ESWATINI', 14, 24);
+  doc.setTextColor(120,110,100); doc.setFontSize(7);
+  doc.text(`Weekly Report · ${new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · Border Premium 20%`, 14, 29);
+  doc.setDrawColor(200,180,140); doc.line(14,32,283,32);
 
-  // Line
-  doc.setDrawColor(30, 42, 54);
-  doc.line(14, 36, 283, 36);
-
-  // Build table data
-  const materials = processData(allData);
-  const tableData = [];
-  materials.forEach(mat => {
-    const row = [mat.label];
-    const source = CITIES.map(c => mat.byCity[c]?.latest?.source).filter(Boolean)[0] || '—';
-    row.push(source);
-    CITIES.forEach(city => {
-      const { latest, previous } = mat.byCity[city];
+  const mats = processData(allData);
+  const rows = mats.map(m => {
+    const src = CITIES.map(c => m.byCity[c]?.latest?.source).filter(Boolean)[0] || '—';
+    const row = [m.label, src];
+    CITIES.forEach(c => {
+      const { latest, prev } = m.byCity[c];
       const zar = latest?.price_zar;
-      const szl = zar ? (zar * 1.20).toFixed(2) : '—';
-      const deltaVal = (zar && previous?.price_zar)
-        ? (((zar - previous.price_zar) / previous.price_zar) * 100).toFixed(1) + '%'
-        : '—';
-      row.push(zar ? `R${parseFloat(zar).toFixed(2)}` : 'N/A');
-      row.push(zar ? `E${szl}` : 'N/A');
-      row.push(deltaVal);
+      const szl = zar ? (zar*1.20).toFixed(2) : '—';
+      const d = (zar && prev?.price_zar) ? (((zar-prev.price_zar)/prev.price_zar)*100).toFixed(1)+'%' : '—';
+      row.push(zar ? `R ${parseFloat(zar).toFixed(2)}` : '—', zar ? `E ${szl}` : '—', d);
     });
-    tableData.push(row);
+    return row;
   });
 
   doc.autoTable({
-    startY: 40,
-    head: [['Material', 'Source', 'Joburg ZAR', 'Joburg SZL', 'Joburg WoW', 'Nelspruit ZAR', 'Nelspruit SZL', 'Nelspruit WoW']],
-    body: tableData,
+    startY: 36,
+    head: [['Material','Source','JHB ZAR','JHB SZL','JHB WoW','NLP ZAR','NLP SZL','NLP WoW']],
+    body: rows,
     theme: 'grid',
-    headStyles: { fillColor: [13, 17, 23], textColor: [120, 139, 154], fontSize: 8, fontStyle: 'bold' },
-    bodyStyles: { fillColor: [7, 9, 12], textColor: [201, 209, 217], fontSize: 9 },
-    alternateRowStyles: { fillColor: [13, 17, 23] },
-    columnStyles: { 0: { cellWidth: 60 } },
-    margin: { left: 14, right: 14 }
+    headStyles: { fillColor:[26,24,20], textColor:[139,105,20], fontSize:7, fontStyle:'bold', cellPadding:4 },
+    bodyStyles: { fillColor:bg, textColor:fg, fontSize:8, cellPadding:5 },
+    alternateRowStyles: { fillColor: isDark ? [19,26,36] : [242,238,232] },
+    margin: { left:14, right:14 }
   });
 
-  // Footer
-  const pageHeight = doc.internal.pageSize.height;
-  doc.setFontSize(7);
-  doc.setTextColor(60, 80, 96);
-  doc.text('Sekelo — Eswatini Construction Intelligence  ·  Prices sourced from South African retailers  ·  For procurement reference only', 14, pageHeight - 8);
-
-  doc.save(`Sekelo_Price_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  const ph = doc.internal.pageSize.height;
+  doc.setFontSize(6); doc.setTextColor(150,140,128);
+  doc.text('Sekelo · Eswatini Construction Intelligence · Prices from South African retailers · For procurement reference only', 14, ph-6);
+  doc.save(`Sekelo_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 init();
