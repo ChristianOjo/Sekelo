@@ -1,5 +1,0 @@
-[deploy]
-startCommand = "python scraper.py"
-
-[env]
-PYTHONUNBUFFERED = "1"
