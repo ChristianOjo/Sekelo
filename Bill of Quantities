@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sekelo — Bill of Quantities Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root {
+  --bg:        #F7F4EF;
+  --surface:   #FFFFFF;
+  --surface-2: #F2EEE8;
+  --border:    #E2D9CC;
+  --border-2:  #D0C4B3;
+  --accent:    #8B6914;
+  --accent-bg: rgba(139,105,20,0.06);
+  --up:        #B83232;
+  --down:      #2D6B4A;
+  --down-bg:   rgba(45,107,74,0.06);
+  --text:      #1A1814;
+  --text-2:    #6B5E4E;
+  --text-3:    #A89880;
+  --text-4:    #C8BAA8;
+  --serif:     'Cormorant Garamond', Georgia, serif;
+  --sans:      'DM Sans', sans-serif;
+  --mono:      'JetBrains Mono', monospace;
+  --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+}
+[data-theme="dark"] {
+  --bg:        #0C1018;
+  --surface:   #131A24;
+  --surface-2: #1A2330;
+  --border:    #1E2C3C;
+  --border-2:  #253545;
+  --accent:    #C8A55A;
+  --accent-bg: rgba(200,165,90,0.08);
+  --up:        #E05555;
+  --down:      #3DAA6E;
+  --down-bg:   rgba(61,170,110,0.08);
+  --text:      #E8E2D5;
+  --text-2:    #9A9080;
+  --text-3:    #5A5245;
+  --text-4:    #3A342C;
+  --shadow:    0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:14px; }
+body { background:var(--bg); color:var(--text); font-family:var(--sans); font-weight:300; min-height:100vh; transition:background 0.25s,color 0.25s; -webkit-font-smoothing:antialiased; }
+
+/* HEADER */
+.header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 40px; display:flex; align-items:center; justify-content:space-between; height:60px; position:sticky; top:0; z-index:100; box-shadow:var(--shadow); transition:background 0.25s,border-color 0.25s; }
+.header-left { display:flex; align-items:center; gap:16px; }
+.logo-wrap { display:flex; align-items:baseline; gap:10px; text-decoration:none; }
+.logo { font-family:var(--serif); font-size:22px; font-weight:600; color:var(--text); letter-spacing:0.5px; }
+.logo-rule { width:1px; height:14px; background:var(--border-2); align-self:center; }
+.logo-sub { font-family:var(--sans); font-size:11px; font-weight:300; color:var(--text-3); }
+.header-right { display:flex; align-items:center; gap:12px; }
+.nav-link { font-family:var(--sans); font-size:11px; font-weight:400; color:var(--text-3); text-decoration:none; padding:6px 12px; border:1px solid transparent; transition:all 0.2s; }
+.nav-link:hover { color:var(--accent); border-color:var(--border); }
+.nav-link.active { color:var(--accent); border-color:var(--accent); background:var(--accent-bg); }
+.theme-toggle { background:none; border:1px solid var(--border); color:var(--text-3); width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; transition:all 0.2s; }
+.theme-toggle:hover { border-color:var(--accent); color:var(--accent); }
+
+/* DATE STRIP */
+.date-strip { background:var(--surface-2); border-bottom:1px solid var(--border); padding:7px 40px; display:flex; align-items:center; justify-content:space-between; }
+.date-strip-left { font-family:var(--serif); font-size:12px; font-style:italic; color:var(--text-3); }
+.strip-note { font-family:var(--mono); font-size:10px; color:var(--text-4); }
+.strip-note b { color:var(--text-3); font-weight:500; }
+
+/* MAIN */
+.main { padding:32px 40px; max-width:1000px; }
+.section-label { font-family:var(--sans); font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-3); margin-bottom:12px; display:flex; align-items:center; gap:10px; }
+.section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* PROJECT CARD */
+.card { background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:16px; transition:background 0.25s,border-color 0.25s; opacity:0; animation:fadeIn 0.4s 0.1s forwards; }
+.card-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.card-title { font-family:var(--sans); font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-3); }
+.card-body { padding:20px; }
+
+/* PROJECT META */
+.project-meta { display:grid; grid-template-columns:1fr 1fr 200px; gap:16px; margin-bottom:0; }
+.f-label { font-family:var(--sans); font-size:9px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-3); margin-bottom:5px; }
+input, select { background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-family:var(--sans); font-size:12px; font-weight:300; padding:9px 12px; outline:none; transition:border 0.2s; width:100%; }
+input:focus, select:focus { border-color:var(--accent); }
+select option { background:var(--surface); }
+
+/* MATERIALS TABLE */
+.mat-table { width:100%; border-collapse:collapse; }
+.mat-table thead tr { border-bottom:2px solid var(--border); }
+.mat-table th { font-family:var(--sans); font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:1px; color:var(--text-3); padding:8px 12px; text-align:left; white-space:nowrap; }
+.mat-table th.r { text-align:right; }
+.mat-table tbody tr { border-bottom:1px solid var(--border); transition:background 0.15s; }
+.mat-table tbody tr:last-child { border-bottom:none; }
+.mat-table tbody tr:hover { background:var(--surface-2); }
+.mat-table td { padding:12px; vertical-align:middle; }
+.mat-table td.r { text-align:right; }
+
+.mat-name { font-family:var(--sans); font-size:12px; font-weight:400; color:var(--text); }
+.mat-unit { font-family:var(--mono); font-size:9px; color:var(--text-4); margin-top:2px; }
+.unit-price { font-family:var(--mono); font-size:12px; color:var(--text-2); }
+.unit-price-sub { font-family:var(--mono); font-size:9px; color:var(--text-4); margin-top:2px; }
+.qty-input { width:100px; text-align:right; font-family:var(--mono); font-size:12px; }
+.line-total { font-family:var(--mono); font-size:13px; font-weight:500; color:var(--text); }
+.line-total-szl { font-family:var(--mono); font-size:10px; color:var(--text-3); margin-top:2px; }
+.na-price { font-family:var(--mono); font-size:11px; color:var(--text-4); }
+
+/* BRANCH SELECTOR */
+.branch-tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.branch-tab { padding:10px 20px; font-family:var(--sans); font-size:10px; font-weight:500; letter-spacing:0.5px; color:var(--text-3); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.2s; text-transform:uppercase; }
+.branch-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* RESULTS */
+.results-card { background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:16px; display:none; opacity:0; animation:fadeIn 0.4s forwards; }
+.results-card.show { display:block; }
+
+.totals-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--border); }
+.total-cell { background:var(--surface); padding:20px 24px; }
+.total-label { font-family:var(--sans); font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-3); margin-bottom:8px; }
+.total-value { font-family:var(--serif); font-size:28px; font-weight:500; color:var(--text); letter-spacing:0.3px; }
+.total-sub { font-family:var(--mono); font-size:10px; color:var(--text-3); margin-top:4px; }
+.total-cell.highlight { background:var(--accent-bg); }
+.total-cell.highlight .total-value { color:var(--accent); }
+
+.recommendation { padding:14px 20px; border-top:1px solid var(--border); display:flex; align-items:center; gap:10px; background:var(--down-bg); }
+.rec-icon { font-size:14px; }
+.rec-text { font-family:var(--sans); font-size:11px; color:var(--down); font-weight:400; }
+.rec-text b { font-weight:500; }
+
+/* BREAKDOWN */
+.breakdown-table { width:100%; border-collapse:collapse; }
+.breakdown-table th { font-family:var(--sans); font-size:9px; font-weight:500; text-transform:uppercase; letter-spacing:1px; color:var(--text-3); padding:8px 16px; text-align:left; border-bottom:1px solid var(--border); }
+.breakdown-table th.r { text-align:right; }
+.breakdown-table td { font-family:var(--sans); font-size:11px; font-weight:300; color:var(--text-2); padding:10px 16px; border-bottom:1px solid var(--border); }
+.breakdown-table td.r { text-align:right; font-family:var(--mono); font-size:11px; }
+.breakdown-table td.name { font-weight:400; color:var(--text); }
+.breakdown-table tr:last-child td { border-bottom:none; }
+.breakdown-table tr:hover td { background:var(--surface-2); }
+.cheaper-badge { display:inline-block; font-family:var(--mono); font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:2px 6px; background:var(--down-bg); color:var(--down); border:1px solid rgba(45,107,74,0.2); margin-left:6px; }
+
+/* ACTIONS */
+.action-bar { display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap; }
+.btn-calculate { background:var(--text); border:none; color:var(--bg); font-family:var(--sans); font-size:11px; font-weight:500; letter-spacing:0.8px; text-transform:uppercase; padding:12px 28px; cursor:pointer; transition:opacity 0.2s; }
+.btn-calculate:hover { opacity:0.8; }
+.btn-calculate:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-clear { background:none; border:1px solid var(--border); color:var(--text-3); font-family:var(--sans); font-size:11px; font-weight:400; letter-spacing:0.5px; padding:11px 20px; cursor:pointer; transition:all 0.2s; text-transform:uppercase; }
+.btn-clear:hover { border-color:var(--up); color:var(--up); }
+.btn-export { background:none; border:1px solid var(--accent); color:var(--accent); font-family:var(--sans); font-size:11px; font-weight:500; letter-spacing:0.5px; padding:11px 20px; cursor:pointer; transition:all 0.2s; text-transform:uppercase; }
+.btn-export:hover { background:var(--accent); color:var(--surface); }
+
+/* DISCLAIMER */
+.disclaimer { margin-top:24px; padding:14px 20px; background:var(--surface-2); border:1px solid var(--border); }
+.disclaimer-text { font-family:var(--sans); font-size:10px; font-weight:300; color:var(--text-3); line-height:1.6; }
+.disclaimer-text b { color:var(--text-2); font-weight:400; }
+
+/* LOADING */
+.loading-state { padding:40px; text-align:center; }
+.loading-dots { display:inline-flex; gap:5px; margin-bottom:10px; }
+.loading-dots span { width:5px; height:5px; border-radius:50%; background:var(--accent); animation:blink 1.2s infinite; }
+.loading-dots span:nth-child(2) { animation-delay:0.2s; }
+.loading-dots span:nth-child(3) { animation-delay:0.4s; }
+.loading-sub { font-family:var(--sans); font-size:11px; color:var(--text-4); }
+
+/* FOOTER */
+.footer { padding:20px 40px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; margin-top:32px; flex-wrap:wrap; gap:8px; }
+.footer-text { font-family:var(--sans); font-size:10px; font-weight:300; color:var(--text-4); }
+.footer-text b { color:var(--text-3); font-weight:400; }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes blink { 0%,80%,100%{opacity:0.15} 40%{opacity:1} }
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-thumb { background:var(--border-2); }
+::-webkit-scrollbar-track { background:transparent; }
+
+@media(max-width:768px) {
+  .header { padding:0 16px; }
+  .logo-sub { display:none; }
+  .main { padding:20px 16px; }
+  .date-strip { padding:7px 16px; }
+  .footer { padding:16px; }
+  .project-meta { grid-template-columns:1fr; }
+  .totals-grid { grid-template-columns:1fr; }
+  .action-bar { flex-direction:column; align-items:stretch; }
+  .btn-calculate, .btn-clear, .btn-export { text-align:center; }
+  .mat-table { font-size:11px; }
+  .qty-input { width:70px; }
+  .nav-link { display:none; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <a href="index.html" class="logo-wrap">
+      <div class="logo">Sekelo</div>
+      <div class="logo-rule"></div>
+      <div class="logo-sub">Construction Price Intelligence</div>
+    </a>
+  </div>
+  <div class="header-right">
+    <a href="index.html" class="nav-link">Price Index</a>
+    <a href="boq.html" class="nav-link active">BoQ Calculator</a>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☾</button>
+  </div>
+</header>
+
+<div class="date-strip">
+  <div class="date-strip-left">Bill of Quantities — Material Cost Estimator</div>
+  <div class="strip-note">Prices sourced from live index · <b>Border premium applied to SZL</b></div>
+</div>
+
+<main class="main">
+  <div class="section-label">Project Details</div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Project Information</div></div>
+    <div class="card-body">
+      <div class="project-meta">
+        <div>
+          <div class="f-label">Project Name</div>
+          <input type="text" id="projectName" placeholder="e.g. Residential House — Mbabane">
+        </div>
+        <div>
+          <div class="f-label">Client / Contractor</div>
+          <input type="text" id="clientName" placeholder="e.g. ABC Construction">
+        </div>
+        <div>
+          <div class="f-label">Estimate Date</div>
+          <input type="date" id="estimateDate">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Material Quantities</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Enter Quantities Required</div>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="branch-tabs" style="margin:0 0 0 0; padding:0 20px">
+        <div class="branch-tab active" onclick="setBranch('Joburg', this)">Johannesburg — Southgate</div>
+        <div class="branch-tab" onclick="setBranch('Nelspruit', this)">Nelspruit Plaza</div>
+      </div>
+      <div id="materialsBody">
+        <div class="loading-state">
+          <div class="loading-dots"><span></span><span></span><span></span></div>
+          <div class="loading-sub">Loading current prices</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn-calculate" onclick="calculate()">Calculate Estimate</button>
+    <button class="btn-clear" onclick="clearAll()">Clear</button>
+    <button class="btn-export" id="exportBtn" onclick="exportPDF()" style="display:none">Export PDF</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-card" id="resultsCard">
+    <div class="card-header">
+      <div class="card-title">Cost Estimate</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-3)" id="resultsMeta">—</div>
+    </div>
+
+    <div class="totals-grid" id="totalsGrid"></div>
+
+    <div class="recommendation" id="recommendation" style="display:none">
+      <span class="rec-icon">↓</span>
+      <span class="rec-text" id="recText"></span>
+    </div>
+
+    <div style="padding:20px">
+      <div style="font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:12px">Itemised Breakdown</div>
+      <table class="breakdown-table" id="breakdownTable"></table>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <div class="disclaimer-text">
+      <b>Disclaimer:</b> This estimate is based on current retail prices tracked by Sekelo and is intended as a procurement reference only. Prices are verified biweekly and subject to change. This estimate covers tracked materials only and does not include labour, plant hire, professional fees, or materials not currently in the Sekelo index. Always verify prices directly with suppliers before committing to a contract.
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-text">Prices from live Sekelo index · Border premium <b>20%</b> applied to SZL · Updated biweekly</div>
+  <div class="footer-text"><b>Sekelo</b> · Eswatini Construction Intelligence · 2026</div>
+</footer>
+
+<script>
+const SUPABASE_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
+const BORDER = 0.20;
+const CITIES = ['Joburg', 'Nelspruit'];
+
+let priceData = {}; // { materialId: { Joburg: price, Nelspruit: price, label: '', unit: '' } }
+let activeBranch = 'Joburg';
+let lastResult = null;
+
+// Units per material
+const UNITS = {
+  cement: 'bags (50kg)',
+  rebar: 'lengths (6m)',
+  timber: 'lengths (6m)',
+  bricks: 'units',
+  bricks_maxi: 'units',
+  concrete_mix: 'bags (40kg)',
+};
+
+// Theme
+function getTheme() { return localStorage.getItem('sekelo_theme') || 'light'; }
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('sekelo_theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀' : '☾';
+}
+(function() {
+  const t = getTheme();
+  document.documentElement.dataset.theme = t;
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('themeBtn').textContent = t === 'dark' ? '☀' : '☾';
+    document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+  });
+})();
+
+// Fetch latest prices
+async function fetchPrices() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/prices?order=timestamp.desc&limit=500&select=*`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!res.ok) throw new Error('Failed to load prices');
+  return res.json();
+}
+
+function buildPriceMap(rows) {
+  const map = {};
+  // For each material, get latest price per city
+  rows.forEach(r => {
+    if (!r.material_id || r.available === false || !r.price_zar) return;
+    if (!map[r.material_id]) {
+      map[r.material_id] = { label: r.material, Joburg: null, Nelspruit: null };
+    }
+    // Only set if not already set (rows are ordered desc so first = latest)
+    if (r.city === 'Joburg' && !map[r.material_id].Joburg) map[r.material_id].Joburg = parseFloat(r.price_zar);
+    if (r.city === 'Nelspruit' && !map[r.material_id].Nelspruit) map[r.material_id].Nelspruit = parseFloat(r.price_zar);
+  });
+  return map;
+}
+
+function renderMaterials() {
+  const body = document.getElementById('materialsBody');
+  const materials = Object.keys(priceData);
+
+  if (!materials.length) {
+    body.innerHTML = `<div style="padding:40px;text-align:center;font-family:var(--serif);font-size:16px;font-style:italic;color:var(--text-4)">No price data available. Enter prices via the admin panel first.</div>`;
+    return;
+  }
+
+  const rows = materials.map(id => {
+    const mat = priceData[id];
+    const price = mat[activeBranch];
+    const unit = UNITS[id] || 'units';
+    return `<tr>
+      <td>
+        <div class="mat-name">${mat.label}</div>
+        <div class="mat-unit">per ${unit}</div>
+      </td>
+      <td class="r">
+        ${price
+          ? `<div class="unit-price">R ${price.toFixed(2)}</div>
+             <div class="unit-price-sub">E ${(price * (1 + BORDER)).toFixed(2)} SZL</div>`
+          : `<span class="na-price">No data</span>`}
+      </td>
+      <td class="r">
+        <input type="number" class="qty-input" id="qty_${id}" min="0" step="1"
+          placeholder="0" oninput="updateLineTotal('${id}')"
+          ${!price ? 'disabled' : ''}>
+      </td>
+      <td class="r">
+        <div class="line-total" id="total_${id}">—</div>
+        <div class="line-total-szl" id="total_szl_${id}"></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `<table class="mat-table">
+    <thead>
+      <tr>
+        <th style="min-width:200px">Material</th>
+        <th class="r" style="min-width:130px">Unit Price</th>
+        <th class="r" style="min-width:110px">Quantity</th>
+        <th class="r" style="min-width:130px">Line Total (ZAR)</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function updateLineTotal(id) {
+  const qty = parseFloat(document.getElementById(`qty_${id}`)?.value) || 0;
+  const price = priceData[id]?.[activeBranch];
+  const totalEl = document.getElementById(`total_${id}`);
+  const totalSzlEl = document.getElementById(`total_szl_${id}`);
+  if (!totalEl) return;
+  if (!price || qty <= 0) {
+    totalEl.textContent = '—';
+    if (totalSzlEl) totalSzlEl.textContent = '';
+    return;
+  }
+  const total = qty * price;
+  totalEl.textContent = `R ${total.toFixed(2)}`;
+  if (totalSzlEl) totalSzlEl.textContent = `E ${(total * (1 + BORDER)).toFixed(2)}`;
+}
+
+function setBranch(city, tab) {
+  activeBranch = city;
+  document.querySelectorAll('.branch-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  // Preserve quantities
+  const quantities = {};
+  Object.keys(priceData).forEach(id => {
+    const el = document.getElementById(`qty_${id}`);
+    if (el) quantities[id] = el.value;
+  });
+  renderMaterials();
+  // Restore quantities and recalc
+  Object.keys(quantities).forEach(id => {
+    const el = document.getElementById(`qty_${id}`);
+    if (el && quantities[id]) { el.value = quantities[id]; updateLineTotal(id); }
+  });
+  // Hide results when switching branch
+  document.getElementById('resultsCard').classList.remove('show');
+  document.getElementById('exportBtn').style.display = 'none';
+}
+
+function calculate() {
+  const materials = Object.keys(priceData);
+  let zarTotal = 0;
+  let hasAny = false;
+  const lineItems = [];
+
+  materials.forEach(id => {
+    const qty = parseFloat(document.getElementById(`qty_${id}`)?.value) || 0;
+    const price = priceData[id]?.[activeBranch];
+    if (qty > 0 && price) {
+      const lineZar = qty * price;
+      zarTotal += lineZar;
+      hasAny = true;
+      lineItems.push({ id, label: priceData[id].label, qty, unit: UNITS[id] || 'units', unitPrice: price, lineZar });
+    }
+  });
+
+  if (!hasAny) {
+    alert('Please enter at least one quantity to calculate.');
+    return;
+  }
+
+  const szlTotal = zarTotal * (1 + BORDER);
+
+  // Compare with other branch
+  let otherBranch = activeBranch === 'Joburg' ? 'Nelspruit' : 'Joburg';
+  let otherBranchLabel = activeBranch === 'Joburg' ? 'Nelspruit Plaza' : 'Johannesburg — Southgate';
+  let currentBranchLabel = activeBranch === 'Joburg' ? 'Johannesburg — Southgate' : 'Nelspruit Plaza';
+  let otherTotal = 0;
+  let canCompare = true;
+  lineItems.forEach(item => {
+    const otherPrice = priceData[item.id]?.[otherBranch];
+    if (otherPrice) otherTotal += item.qty * otherPrice;
+    else canCompare = false;
+  });
+
+  lastResult = { lineItems, zarTotal, szlTotal, activeBranch, currentBranchLabel, otherBranch, otherBranchLabel, otherTotal, canCompare };
+
+  // Render totals
+  const project = document.getElementById('projectName').value || 'Unnamed Project';
+  const client = document.getElementById('clientName').value || '—';
+  const date = document.getElementById('estimateDate').value
+    ? new Date(document.getElementById('estimateDate').value).toLocaleDateString('en-ZA', { day:'2-digit', month:'long', year:'numeric' })
+    : new Date().toLocaleDateString('en-ZA', { day:'2-digit', month:'long', year:'numeric' });
+
+  document.getElementById('resultsMeta').textContent = `${project} · ${client} · ${date}`;
+
+  document.getElementById('totalsGrid').innerHTML = `
+    <div class="total-cell">
+      <div class="total-label">Total Cost (ZAR)</div>
+      <div class="total-value">R ${zarTotal.toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+      <div class="total-sub">${currentBranchLabel}</div>
+    </div>
+    <div class="total-cell highlight">
+      <div class="total-label">Total Cost (SZL)</div>
+      <div class="total-value">E ${szlTotal.toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+      <div class="total-sub">Incl. 20% border premium</div>
+    </div>
+    <div class="total-cell">
+      <div class="total-label">Line Items</div>
+      <div class="total-value">${lineItems.length}</div>
+      <div class="total-sub">Materials included</div>
+    </div>`;
+
+  // Recommendation
+  const recEl = document.getElementById('recommendation');
+  const recText = document.getElementById('recText');
+  if (canCompare && otherTotal > 0) {
+    const saving = Math.abs(zarTotal - otherTotal);
+    const cheaper = zarTotal <= otherTotal ? currentBranchLabel : otherBranchLabel;
+    const isCurrentCheaper = zarTotal <= otherTotal;
+    recEl.style.display = 'flex';
+    recEl.style.background = isCurrentCheaper ? 'var(--down-bg)' : 'var(--accent-bg)';
+    recText.style.color = isCurrentCheaper ? 'var(--down)' : 'var(--accent)';
+    if (isCurrentCheaper) {
+      recText.innerHTML = `<b>${currentBranchLabel}</b> is the cheaper source for this estimate — saving <b>R ${saving.toFixed(2)}</b> vs ${otherBranchLabel}.`;
+    } else {
+      recText.innerHTML = `<b>${otherBranchLabel}</b> would be cheaper for this estimate — saving <b>R ${saving.toFixed(2)}</b> vs current selection.`;
+    }
+  } else {
+    recEl.style.display = 'none';
+  }
+
+  // Breakdown table
+  const breakdownRows = lineItems.map(item => {
+    const otherPrice = priceData[item.id]?.[otherBranch];
+    const otherLine = otherPrice ? item.qty * otherPrice : null;
+    const isCheaper = otherLine && item.lineZar < otherLine;
+    return `<tr>
+      <td class="name">${item.label}${isCheaper ? '<span class="cheaper-badge">Cheaper here</span>' : ''}</td>
+      <td>${item.qty} ${item.unit}</td>
+      <td class="r">R ${item.unitPrice.toFixed(2)}</td>
+      <td class="r">R ${item.lineZar.toFixed(2)}</td>
+      <td class="r">E ${(item.lineZar * (1 + BORDER)).toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalRow = `<tr style="border-top:2px solid var(--border)">
+    <td class="name" style="font-weight:500;color:var(--text)" colspan="3">Total Estimate</td>
+    <td class="r" style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)">R ${zarTotal.toFixed(2)}</td>
+    <td class="r" style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent)">E ${szlTotal.toFixed(2)}</td>
+  </tr>`;
+
+  document.getElementById('breakdownTable').innerHTML = `
+    <thead><tr>
+      <th>Material</th><th>Quantity</th><th class="r">Unit Price</th>
+      <th class="r">Line Total (ZAR)</th><th class="r">Line Total (SZL)</th>
+    </tr></thead>
+    <tbody>${breakdownRows}${totalRow}</tbody>`;
+
+  const rc = document.getElementById('resultsCard');
+  rc.classList.add('show');
+  document.getElementById('exportBtn').style.display = 'inline-block';
+  rc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearAll() {
+  Object.keys(priceData).forEach(id => {
+    const el = document.getElementById(`qty_${id}`);
+    if (el) el.value = '';
+    updateLineTotal(id);
+  });
+  document.getElementById('resultsCard').classList.remove('show');
+  document.getElementById('exportBtn').style.display = 'none';
+  document.getElementById('projectName').value = '';
+  document.getElementById('clientName').value = '';
+  lastResult = null;
+}
+
+async function exportPDF() {
+  if (!lastResult) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const isDark = false; // Always light for PDF
+
+  const project = document.getElementById('projectName').value || 'Unnamed Project';
+  const client = document.getElementById('clientName').value || '—';
+  const date = document.getElementById('estimateDate').value
+    ? new Date(document.getElementById('estimateDate').value).toLocaleDateString('en-ZA', { day:'2-digit', month:'long', year:'numeric' })
+    : new Date().toLocaleDateString('en-ZA', { day:'2-digit', month:'long', year:'numeric' });
+
+  // Header
+  doc.setFillColor(247, 244, 239);
+  doc.rect(0, 0, 210, 297, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(26, 24, 20);
+  doc.text('Sekelo', 14, 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(139, 105, 20);
+  doc.text('BILL OF QUANTITIES — MATERIAL COST ESTIMATE', 14, 24);
+
+  doc.setDrawColor(226, 217, 204);
+  doc.line(14, 27, 196, 27);
+
+  // Project details
+  doc.setFontSize(8);
+  doc.setTextColor(107, 94, 78);
+  doc.text(`Project: ${project}`, 14, 33);
+  doc.text(`Client / Contractor: ${client}`, 14, 38);
+  doc.text(`Date: ${date}`, 14, 43);
+  doc.text(`Source: ${lastResult.currentBranchLabel}`, 14, 48);
+  doc.text(`Border Premium: 20% applied to SZL conversion`, 14, 53);
+
+  doc.line(14, 56, 196, 56);
+
+  // Table
+  const tableData = lastResult.lineItems.map(item => [
+    item.label,
+    `${item.qty} ${item.unit}`,
+    `R ${item.unitPrice.toFixed(2)}`,
+    `R ${item.lineZar.toFixed(2)}`,
+    `E ${(item.lineZar * (1 + BORDER)).toFixed(2)}`
+  ]);
+
+  tableData.push([
+    { content: 'TOTAL ESTIMATE', styles: { fontStyle: 'bold' } },
+    '', '',
+    { content: `R ${lastResult.zarTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } },
+    { content: `E ${lastResult.szlTotal.toFixed(2)}`, styles: { fontStyle: 'bold', textColor: [139, 105, 20] } }
+  ]);
+
+  doc.autoTable({
+    startY: 60,
+    head: [['Material', 'Quantity', 'Unit Price', 'Line Total (ZAR)', 'Line Total (SZL)']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { fillColor: [26, 24, 20], textColor: [200, 165, 90], fontSize: 8, fontStyle: 'bold' },
+    bodyStyles: { fillColor: [247, 244, 239], textColor: [26, 24, 20], fontSize: 8 },
+    alternateRowStyles: { fillColor: [242, 238, 232] },
+    margin: { left: 14, right: 14 }
+  });
+
+  const finalY = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(7);
+  doc.setTextColor(168, 152, 128);
+  doc.text('DISCLAIMER: This estimate is for procurement reference only. Prices verified biweekly. Does not include labour, plant hire, or professional fees.', 14, finalY, { maxWidth: 182 });
+
+  const ph = doc.internal.pageSize.height;
+  doc.setFontSize(6);
+  doc.setTextColor(200, 186, 168);
+  doc.text('Sekelo · Eswatini Construction Intelligence · sekelo.vercel.app', 14, ph - 8);
+
+  const filename = `Sekelo_BoQ_${project.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+}
+
+async function init() {
+  try {
+    const rows = await fetchPrices();
+    priceData = buildPriceMap(rows);
+    renderMaterials();
+  } catch(e) {
+    document.getElementById('materialsBody').innerHTML = `<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--up)">Error loading prices: ${e.message}</div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
