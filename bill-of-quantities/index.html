@@ -1,1 +1,618 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sekelo — Bill of Quantities Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root {
+  --bg:#F7F4EF;--surface:#FFFFFF;--surface-2:#F2EEE8;--border:#E2D9CC;--border-2:#D0C4B3;
+  --accent:#8B6914;--accent-bg:rgba(139,105,20,0.06);
+  --up:#B83232;--up-bg:rgba(184,50,50,0.06);
+  --down:#2D6B4A;--down-bg:rgba(45,107,74,0.08);
+  --text:#1A1814;--text-2:#6B5E4E;--text-3:#A89880;--text-4:#C8BAA8;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'DM Sans',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.08);
+}
+[data-theme="dark"] {
+  --bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;--border:#1E2C3C;--border-2:#253545;
+  --accent:#C8A55A;--accent-bg:rgba(200,165,90,0.08);
+  --up:#E05555;--up-bg:rgba(224,85,85,0.08);
+  --down:#3DAA6E;--down-bg:rgba(61,170,110,0.08);
+  --text:#E8E2D5;--text-2:#9A9080;--text-3:#5A5245;--text-4:#3A342C;
+  --shadow:0 1px 3px rgba(0,0,0,0.3);--shadow-md:0 4px 16px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;min-height:100vh;transition:background 0.25s,color 0.25s;-webkit-font-smoothing:antialiased;}
 
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);transition:background 0.25s,border-color 0.25s;}
+.header-left{display:flex;align-items:center;gap:16px;}
+.logo-wrap{display:flex;align-items:baseline;gap:10px;text-decoration:none;}
+.logo{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--text);letter-spacing:0.5px;}
+.logo-rule{width:1px;height:14px;background:var(--border-2);align-self:center;}
+.logo-sub{font-family:var(--sans);font-size:11px;font-weight:300;color:var(--text-3);}
+.header-right{display:flex;align-items:center;gap:12px;}
+.nav-link{font-family:var(--sans);font-size:11px;font-weight:400;color:var(--text-3);text-decoration:none;padding:6px 12px;border:1px solid transparent;transition:all 0.2s;}
+.nav-link:hover{color:var(--accent);border-color:var(--border);}
+.nav-link.active{color:var(--accent);border-color:var(--accent);background:var(--accent-bg);}
+.theme-toggle{background:none;border:1px solid var(--border);color:var(--text-3);width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.2s;}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent);}
+
+/* STRIP */
+.date-strip{background:var(--surface-2);border-bottom:1px solid var(--border);padding:7px 40px;display:flex;align-items:center;justify-content:space-between;}
+.date-strip-left{font-family:var(--serif);font-size:12px;font-style:italic;color:var(--text-3);}
+.strip-note{font-family:var(--mono);font-size:10px;color:var(--text-4);}
+.strip-note b{color:var(--text-3);font-weight:500;}
+
+/* MAIN */
+.main{padding:32px 40px;max-width:1100px;}
+.section-label{font-family:var(--sans);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px;transition:background 0.25s,border-color 0.25s;opacity:0;animation:fadeIn 0.4s 0.1s forwards;}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);}
+.card-body{padding:20px;}
+
+/* META */
+.project-meta{display:grid;grid-template-columns:1fr 1fr 180px;gap:16px;}
+.f-label{font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;}
+input,select{background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;font-weight:300;padding:9px 12px;outline:none;transition:border 0.2s;width:100%;}
+input:focus,select:focus{border-color:var(--accent);}
+select option{background:var(--surface);}
+
+/* QUANTITIES TABLE */
+.qty-table{width:100%;border-collapse:collapse;}
+.qty-table thead tr{border-bottom:2px solid var(--border);}
+.qty-table th{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:8px 16px;text-align:left;white-space:nowrap;}
+.qty-table th.r{text-align:right;}
+.qty-table tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;}
+.qty-table tbody tr:last-child{border-bottom:none;}
+.qty-table tbody tr:hover{background:var(--surface-2);}
+.qty-table td{padding:12px 16px;vertical-align:middle;}
+.qty-table td.r{text-align:right;}
+.mat-name{font-family:var(--sans);font-size:12px;font-weight:400;color:var(--text);}
+.mat-unit{font-family:var(--mono);font-size:9px;color:var(--text-4);margin-top:2px;}
+.qty-input{width:110px;text-align:right;font-family:var(--mono);font-size:12px;}
+
+/* LOCATION PRICE COLUMNS */
+.loc-price{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-2);text-align:right;}
+.loc-price-szl{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);text-align:right;margin-top:2px;}
+.no-price{font-family:var(--sans);font-size:9px;color:var(--text-4);text-align:right;line-height:1.4;}
+
+/* LOCATION HEADER PILL */
+.loc-header{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.loc-name{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);}
+
+/* ACTIONS */
+.action-bar{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap;}
+.btn-primary{background:var(--text);border:none;color:var(--bg);font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:0.8px;text-transform:uppercase;padding:12px 28px;cursor:pointer;transition:opacity 0.2s;}
+.btn-primary:hover{opacity:0.8;}
+.btn-clear{background:none;border:1px solid var(--border);color:var(--text-3);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:0.5px;padding:11px 20px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+.btn-clear:hover{border-color:var(--up);color:var(--up);}
+.btn-export{background:none;border:1px solid var(--accent);color:var(--accent);font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:0.5px;padding:11px 20px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;display:none;}
+.btn-export:hover{background:var(--accent);color:var(--surface);}
+
+/* RESULTS */
+.results-card{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);margin-top:24px;display:none;}
+.results-card.show{display:block;animation:fadeIn 0.4s forwards;}
+
+/* WINNER BANNER */
+.winner-banner{padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);background:var(--down-bg);}
+.winner-icon{font-size:18px;}
+.winner-text{font-family:var(--sans);font-size:13px;font-weight:400;color:var(--down);}
+.winner-text b{font-weight:600;}
+.winner-saving{font-family:var(--mono);font-size:11px;color:var(--down);opacity:0.8;margin-top:2px;}
+
+/* LOCATION COMPARISON GRID */
+.loc-comparison{display:grid;gap:1px;background:var(--border);}
+.loc-cell{background:var(--surface);padding:18px 24px;position:relative;}
+.loc-cell.winner{background:var(--down-bg);}
+.loc-cell.winner .loc-total-value{color:var(--down);}
+.loc-cell-label{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.winner-tag{font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;background:var(--down);color:white;}
+.loc-total-value{font-family:var(--serif);font-size:26px;font-weight:500;color:var(--text);}
+.loc-total-szl{font-family:var(--mono);font-size:18px;font-weight:400;color:var(--text-3);margin-top:6px;}
+.loc-total-items{font-family:var(--sans);font-size:10px;color:var(--text-4);margin-top:4px;}
+
+/* BREAKDOWN */
+.breakdown-wrap{padding:20px;}
+.breakdown-title{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:12px;}
+.breakdown-table{width:100%;border-collapse:collapse;}
+.breakdown-table th{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.breakdown-table th.r{text-align:right;}
+.breakdown-table td{font-family:var(--sans);font-size:11px;font-weight:300;color:var(--text-2);padding:10px 12px;border-bottom:1px solid var(--border);}
+.breakdown-table td.name{font-weight:400;color:var(--text);}
+.breakdown-table td.mono{font-family:var(--mono);font-size:11px;text-align:right;}
+.breakdown-table td.best{font-family:var(--mono);font-size:11px;text-align:right;color:var(--down);font-weight:500;}
+.breakdown-table td.worst{font-family:var(--mono);font-size:11px;text-align:right;color:var(--text-3);}
+.breakdown-table tr:last-child td{border-bottom:none;}
+.breakdown-table tr:hover td{background:var(--surface-2);}
+.total-row td{border-top:2px solid var(--border) !important;border-bottom:none !important;font-weight:500;}
+.best-badge{display:inline-block;font-family:var(--mono);font-size:8px;letter-spacing:0.5px;padding:1px 5px;background:var(--down-bg);color:var(--down);border:1px solid rgba(45,107,74,0.2);margin-left:4px;vertical-align:middle;}
+
+/* DISCLAIMER */
+.disclaimer{margin-top:16px;padding:14px 20px;background:var(--surface-2);border:1px solid var(--border);}
+.disclaimer-text{font-family:var(--sans);font-size:10px;font-weight:300;color:var(--text-3);line-height:1.6;}
+.disclaimer-text b{color:var(--text-2);font-weight:400;}
+
+/* LOADING */
+.loading-state{padding:40px;text-align:center;}
+.loading-dots{display:inline-flex;gap:5px;margin-bottom:10px;}
+.loading-dots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite;}
+.loading-dots span:nth-child(2){animation-delay:0.2s;}
+.loading-dots span:nth-child(3){animation-delay:0.4s;}
+.loading-sub{font-family:var(--sans);font-size:11px;color:var(--text-4);}
+
+/* FOOTER */
+.footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;margin-top:32px;flex-wrap:wrap;gap:8px;}
+.footer-text{font-family:var(--sans);font-size:10px;font-weight:300;color:var(--text-4);}
+.footer-text b{color:var(--text-3);font-weight:400;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,80%,100%{opacity:0.15}40%{opacity:1}}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:var(--border-2);}
+::-webkit-scrollbar-track{background:transparent;}
+
+@media(max-width:768px){
+  .header{padding:0 16px;}
+  .logo-sub,.nav-link{display:none;}
+  .main{padding:20px 16px;}
+  .date-strip{padding:7px 16px;}
+  .footer{padding:16px;}
+  .project-meta{grid-template-columns:1fr;}
+  .action-bar{flex-direction:column;align-items:stretch;}
+  .btn-primary,.btn-clear,.btn-export{text-align:center;}
+  .loc-comparison{grid-template-columns:1fr !important;}
+  .qty-table{font-size:11px;}
+  .qty-input{width:80px;}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <a href="index.html" class="logo-wrap">
+      <div class="logo">Sekelo</div>
+      <div class="logo-rule"></div>
+      <div class="logo-sub">Construction Price Intelligence</div>
+    </a>
+  </div>
+  <div class="header-right">
+    <a href="index.html" class="nav-link">Price Index</a>
+    <a href="boq.html" class="nav-link active">BoQ Calculator</a>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☾</button>
+  </div>
+</header>
+
+<div class="date-strip">
+  <div class="date-strip-left">Bill of Quantities — Multi-Location Cost Comparison</div>
+  <div class="strip-note">All locations calculated simultaneously · <b>SZL includes 20% border premium</b></div>
+</div>
+
+<main class="main">
+  <div class="section-label">Project Details</div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Project Information</div></div>
+    <div class="card-body">
+      <div class="project-meta">
+        <div><div class="f-label">Project Name</div><input type="text" id="projectName" placeholder="e.g. Residential House — Mbabane"></div>
+        <div><div class="f-label">Client / Contractor</div><input type="text" id="clientName" placeholder="e.g. ABC Construction"></div>
+        <div><div class="f-label">Estimate Date</div><input type="date" id="estimateDate"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Material Quantities</div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Enter Quantities — All Locations Compared Automatically</div>
+    </div>
+    <div class="card-body" style="padding:0;overflow-x:auto;">
+      <div id="materialsBody">
+        <div class="loading-state">
+          <div class="loading-dots"><span></span><span></span><span></span></div>
+          <div class="loading-sub">Loading prices across all locations</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn-primary" onclick="calculate()">Compare All Locations</button>
+    <button class="btn-clear" onclick="clearAll()">Clear</button>
+    <button class="btn-export" id="exportBtn" onclick="exportPDF()">Export PDF</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-card" id="resultsCard">
+    <div class="card-header">
+      <div class="card-title">Location Cost Comparison</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-3)" id="resultsMeta">—</div>
+    </div>
+
+    <div class="winner-banner" id="winnerBanner">
+      <span class="winner-icon">↓</span>
+      <div>
+        <div class="winner-text" id="winnerText">—</div>
+        <div class="winner-saving" id="winnerSaving">—</div>
+      </div>
+    </div>
+
+    <div class="loc-comparison" id="locComparison" style="grid-template-columns:repeat(2,1fr)"></div>
+
+    <div class="breakdown-wrap">
+      <div class="breakdown-title">Itemised Breakdown — All Locations</div>
+      <div style="overflow-x:auto">
+        <table class="breakdown-table" id="breakdownTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <div class="disclaimer-text">
+      <b>Disclaimer:</b> This estimate is based on current retail prices tracked by Sekelo and is intended as a procurement reference only. Prices are verified biweekly and subject to change. This estimate covers tracked materials only and does not include labour, plant hire, professional fees, or materials not currently in the Sekelo index. Always verify prices directly with suppliers before committing to a contract.
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-text">Live Sekelo price index · Border premium <b>20%</b> applied to all SZL figures · Updated biweekly</div>
+  <div class="footer-text"><b>Sekelo</b> · Eswatini Construction Intelligence · 2026</div>
+</footer>
+
+<script>
+const SUPABASE_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
+const BORDER = 0.20;
+
+const UNITS = {
+  cement:'bags (50kg)', rebar:'lengths (6m)', timber:'lengths (6m)',
+  bricks:'units', bricks_maxi:'units', concrete_mix:'bags (40kg)'
+};
+
+// { materialId: { label, unit, prices: { Joburg: price, Nelspruit: price, ... } } }
+let priceData = {};
+let locations = []; // ordered list of all cities in db
+let lastResult = null;
+
+// Theme
+function getTheme(){ return localStorage.getItem('sekelo_theme')||'light'; }
+function toggleTheme(){
+  const next = document.documentElement.dataset.theme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  localStorage.setItem('sekelo_theme',next);
+  document.getElementById('themeBtn').textContent=next==='dark'?'☀':'☾';
+}
+(function(){
+  const t=getTheme();
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('themeBtn').textContent=t==='dark'?'☀':'☾';
+    document.getElementById('estimateDate').value=new Date().toISOString().split('T')[0];
+  });
+})();
+
+// Fetch & process
+async function fetchPrices(){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/prices?order=timestamp.desc&limit=1000&select=*`,{
+    headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}
+  });
+  if(!r.ok) throw new Error('Failed to load');
+  return r.json();
+}
+
+function buildPriceMap(rows){
+  const map={};
+  const citiesFound=new Set();
+  rows.forEach(r=>{
+    if(!r.material_id||r.available===false||!r.price_zar) return;
+    if(!map[r.material_id]) map[r.material_id]={label:r.material,prices:{}};
+    if(!map[r.material_id].prices[r.city]) {
+      map[r.material_id].prices[r.city]=parseFloat(r.price_zar);
+      citiesFound.add(r.city);
+    }
+  });
+  // Consistent city order
+  const preferred=['Joburg','Nelspruit'];
+  const ordered=[...preferred.filter(c=>citiesFound.has(c)),...[...citiesFound].filter(c=>!preferred.includes(c))];
+  return {map, locations:ordered};
+}
+
+const CITY_LABELS={
+  Joburg:'Johannesburg — Southgate',
+  Nelspruit:'Nelspruit Plaza'
+};
+function cityLabel(c){ return CITY_LABELS[c]||c; }
+
+function renderMaterials(){
+  const mats=Object.keys(priceData);
+  if(!mats.length){
+    document.getElementById('materialsBody').innerHTML=`<div style="padding:40px;text-align:center;font-family:var(--serif);font-size:16px;font-style:italic;color:var(--text-4)">No price data available. Enter prices via the admin panel first.</div>`;
+    return;
+  }
+
+  // Build location header columns
+  const locHeaders=locations.map(loc=>`
+    <th class="r">
+      <div class="loc-header">
+        <div class="loc-name">${cityLabel(loc)}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--text-4);margin-top:1px">ZAR / SZL</div>
+      </div>
+    </th>`).join('');
+
+  const rows=mats.map(id=>{
+    const mat=priceData[id];
+    const unit=UNITS[id]||'units';
+    const locCols=locations.map(loc=>{
+      const p=mat.prices[loc];
+      return `<td class="r">
+        ${p
+          ? `<div class="loc-price">R ${p.toFixed(2)}</div>
+             <div class="loc-price-szl">E ${(p*(1+BORDER)).toFixed(2)}</div>`
+          : `<div class="no-price">Out of Stock</div>`}
+      </td>`;
+    }).join('');
+
+    return `<tr>
+      <td>
+        <div class="mat-name">${mat.label}</div>
+        <div class="mat-unit">per ${unit}</div>
+      </td>
+      <td class="r">
+        <input type="number" class="qty-input" id="qty_${id}" min="0" step="1" placeholder="0">
+      </td>
+      ${locCols}
+    </tr>`;
+  }).join('');
+
+  document.getElementById('materialsBody').innerHTML=`
+    <table class="qty-table">
+      <thead><tr>
+        <th style="min-width:200px">Material</th>
+        <th class="r" style="min-width:110px">Quantity</th>
+        ${locHeaders}
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function calculate(){
+  const mats=Object.keys(priceData);
+  const lineItems=[];
+  let hasAny=false;
+
+  mats.forEach(id=>{
+    const qty=parseFloat(document.getElementById(`qty_${id}`)?.value)||0;
+    if(qty<=0) return;
+    const mat=priceData[id];
+    const unit=UNITS[id]||'units';
+    const locTotals={};
+    locations.forEach(loc=>{
+      const p=mat.prices[loc];
+      locTotals[loc]=p?parseFloat((qty*p).toFixed(2)):null;
+    });
+    lineItems.push({id,label:mat.label,qty,unit,locTotals,unitPrices:mat.prices});
+    hasAny=true;
+  });
+
+  if(!hasAny){ alert('Please enter at least one quantity to calculate.'); return; }
+
+  // Grand totals per location
+  const grandTotals={};
+  locations.forEach(loc=>{
+    let total=0; let complete=true;
+    lineItems.forEach(item=>{
+      if(item.locTotals[loc]!==null) total+=item.locTotals[loc];
+      else complete=false;
+    });
+    grandTotals[loc]={total:parseFloat(total.toFixed(2)),complete};
+  });
+
+  // Find cheapest location (only among complete ones)
+  const completeLocs=locations.filter(l=>grandTotals[l].complete);
+  let cheapestLoc=null;
+  if(completeLocs.length>0){
+    cheapestLoc=completeLocs.reduce((a,b)=>grandTotals[a].total<=grandTotals[b].total?a:b);
+  }
+  // Also find most expensive for saving calc
+  let mostExpensiveLoc=null;
+  if(completeLocs.length>1){
+    mostExpensiveLoc=completeLocs.reduce((a,b)=>grandTotals[a].total>=grandTotals[b].total?a:b);
+  }
+
+  lastResult={lineItems,grandTotals,cheapestLoc,mostExpensiveLoc,locations};
+
+  // Meta
+  const project=document.getElementById('projectName').value||'Unnamed Project';
+  const client=document.getElementById('clientName').value||'—';
+  const date=document.getElementById('estimateDate').value
+    ?new Date(document.getElementById('estimateDate').value).toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'})
+    :new Date().toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('resultsMeta').textContent=`${project} · ${client} · ${date}`;
+
+  // Winner banner
+  if(cheapestLoc){
+    document.getElementById('winnerText').innerHTML=`<b>${cityLabel(cheapestLoc)}</b> is the most cost-effective source for this estimate`;
+    if(mostExpensiveLoc && mostExpensiveLoc!==cheapestLoc){
+      const saving=grandTotals[mostExpensiveLoc].total-grandTotals[cheapestLoc].total;
+      document.getElementById('winnerSaving').textContent=`Saves R ${saving.toFixed(2)} vs ${cityLabel(mostExpensiveLoc)}`;
+    } else {
+      document.getElementById('winnerSaving').textContent='';
+    }
+  }
+
+  // Location comparison cells
+  document.getElementById('locComparison').style.gridTemplateColumns=`repeat(${Math.min(locations.length,3)},1fr)`;
+  document.getElementById('locComparison').innerHTML=locations.map(loc=>{
+    const {total,complete}=grandTotals[loc];
+    const isWinner=loc===cheapestLoc;
+    const szl=(total*(1+BORDER)).toFixed(2);
+    return `<div class="loc-cell ${isWinner?'winner':''}">
+      <div class="loc-cell-label">
+        ${cityLabel(loc)}
+        ${isWinner?'<span class="winner-tag">Cheapest</span>':''}
+        ${!complete?'<span style="font-family:var(--mono);font-size:8px;color:var(--text-4);margin-left:4px">Partial</span>':''}
+      </div>
+      <div class="loc-total-value">R ${total.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div class="loc-total-szl">E ${parseFloat(szl).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})} SZL</div>
+      <div class="loc-total-items">${lineItems.length} material${lineItems.length!==1?'s':''} · ${lineItems.reduce((s,i)=>s+i.qty,0)} units total</div>
+    </div>`;
+  }).join('');
+
+  // Breakdown table — dynamic location columns
+  const locTh=locations.map(loc=>`<th class="r">${cityLabel(loc).split('—')[0].trim()}</th>`).join('');
+
+  const breakdownRows=lineItems.map(item=>{
+    // Find cheapest loc for this line item
+    const availLocs=locations.filter(l=>item.locTotals[l]!==null);
+    const cheapestForItem=availLocs.length>0?availLocs.reduce((a,b)=>item.locTotals[a]<=item.locTotals[b]?a:b):null;
+
+    const locCols=locations.map(loc=>{
+      const val=item.locTotals[loc];
+      if(val===null) return `<td class="mono" style="color:var(--text-4);font-size:9px">Out of Stock</td>`;
+      const isBest=loc===cheapestForItem&&availLocs.length>1;
+      return `<td class="${isBest?'best':'mono'}">R ${val.toFixed(2)}${isBest?'<span class="best-badge">Best</span>':''}</td>`;
+    }).join('');
+
+    return `<tr>
+      <td class="name">${item.label}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text-3)">${item.qty} ${item.unit}</td>
+      ${locCols}
+    </tr>`;
+  }).join('');
+
+  const totalCols=locations.map(loc=>{
+    const {total,complete}=grandTotals[loc];
+    const isWin=loc===cheapestLoc;
+    return `<td class="mono" style="${isWin?'color:var(--down);font-weight:600':''}">R ${total.toFixed(2)}${!complete?' *':''}</td>`;
+  }).join('');
+
+  document.getElementById('breakdownTable').innerHTML=`
+    <thead><tr>
+      <th style="min-width:180px">Material</th>
+      <th style="min-width:100px">Quantity</th>
+      ${locTh}
+    </tr></thead>
+    <tbody>
+      ${breakdownRows}
+      <tr class="total-row">
+        <td class="name" colspan="2">Total Estimate</td>
+        ${totalCols}
+      </tr>
+    </tbody>`;
+
+  const rc=document.getElementById('resultsCard');
+  rc.classList.add('show');
+  document.getElementById('exportBtn').style.display='inline-block';
+  rc.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function clearAll(){
+  Object.keys(priceData).forEach(id=>{
+    const el=document.getElementById(`qty_${id}`);
+    if(el) el.value='';
+  });
+  document.getElementById('resultsCard').classList.remove('show');
+  document.getElementById('exportBtn').style.display='none';
+  document.getElementById('projectName').value='';
+  document.getElementById('clientName').value='';
+  lastResult=null;
+}
+
+async function exportPDF(){
+  if(!lastResult) return;
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+
+  const project=document.getElementById('projectName').value||'Unnamed Project';
+  const client=document.getElementById('clientName').value||'—';
+  const date=document.getElementById('estimateDate').value
+    ?new Date(document.getElementById('estimateDate').value).toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'})
+    :new Date().toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'});
+
+  doc.setFillColor(247,244,239); doc.rect(0,0,297,210,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(26,24,20);
+  doc.text('Sekelo',14,18);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(139,105,20);
+  doc.text('BILL OF QUANTITIES — MULTI-LOCATION COST COMPARISON',14,24);
+  doc.setDrawColor(226,217,204); doc.line(14,27,283,27);
+  doc.setFontSize(8); doc.setTextColor(107,94,78);
+  doc.text(`Project: ${project}`,14,33);
+  doc.text(`Client: ${client}`,14,38);
+  doc.text(`Date: ${date}  ·  Border Premium: 20% applied to SZL`,14,43);
+  doc.line(14,46,283,46);
+
+  // Summary row
+  const summaryData=lastResult.locations.map(loc=>{
+    const {total}=lastResult.grandTotals[loc];
+    const isWin=loc===lastResult.cheapestLoc;
+    return [`${cityLabel(loc)}${isWin?' ★ CHEAPEST':''}`,`R ${total.toFixed(2)}`,`E ${(total*(1+BORDER)).toFixed(2)}`];
+  });
+
+  doc.autoTable({
+    startY:50,
+    head:[['Location','Total (ZAR)','Total (SZL)']],
+    body:summaryData,
+    theme:'grid',
+    headStyles:{fillColor:[26,24,20],textColor:[200,165,90],fontSize:8,fontStyle:'bold'},
+    bodyStyles:{fillColor:[247,244,239],textColor:[26,24,20],fontSize:9},
+    alternateRowStyles:{fillColor:[242,238,232]},
+    margin:{left:14,right:14},
+    tableWidth:160
+  });
+
+  const y2=doc.lastAutoTable.finalY+8;
+
+  // Breakdown
+  const head=[['Material','Qty',...lastResult.locations.map(l=>cityLabel(l).split('—')[0].trim()+' ZAR')]];
+  const body=lastResult.lineItems.map(item=>[
+    item.label,
+    `${item.qty} ${item.unit}`,
+    ...lastResult.locations.map(loc=>item.locTotals[loc]!==null?`R ${item.locTotals[loc].toFixed(2)}`:'—')
+  ]);
+  body.push([
+    {content:'TOTAL',styles:{fontStyle:'bold'}},
+    '',
+    ...lastResult.locations.map(loc=>({content:`R ${lastResult.grandTotals[loc].total.toFixed(2)}`,styles:{fontStyle:'bold',textColor:loc===lastResult.cheapestLoc?[45,107,74]:[26,24,20]}}))
+  ]);
+
+  doc.autoTable({startY:y2,head,body,theme:'grid',
+    headStyles:{fillColor:[26,24,20],textColor:[200,165,90],fontSize:7,fontStyle:'bold'},
+    bodyStyles:{fillColor:[247,244,239],textColor:[26,24,20],fontSize:8},
+    alternateRowStyles:{fillColor:[242,238,232]},
+    margin:{left:14,right:14}
+  });
+
+  const ph=doc.internal.pageSize.height;
+  doc.setFontSize(6); doc.setTextColor(200,186,168);
+  doc.text('Sekelo · Eswatini Construction Intelligence · Prices verified biweekly · For procurement reference only',14,ph-6);
+  doc.save(`Sekelo_BoQ_${project.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+async function init(){
+  try{
+    const rows=await fetchPrices();
+    const {map,locations:locs}=buildPriceMap(rows);
+    priceData=map; locations=locs;
+    renderMaterials();
+  } catch(e){
+    document.getElementById('materialsBody').innerHTML=`<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--up)">Error: ${e.message}</div>`;
+  }
+}
+init();
+</script>
+</body>
+</html>
