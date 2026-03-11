@@ -620,7 +620,7 @@ function renderTable(mats) {
       const sep = ci === 0 ? 'sep' : '';
       cityCols += `
         <td class="r ${sep}">
-          ${zar ? `<div class="price-main">${fmtZAR(zar)}</div><div class="price-sub">${fmtSZL(zar)}</div>` : `<span class="na">—</span>`}
+          ${zar ? `<div class="price-main">${fmtZAR(zar)}</div><div class="price-sub">${fmtSZL(zar)}</div>` : `<span class="na">Out of Stock</span>`}
         </td>
         <td class="r">${fmtDelta(zar, prev?.price_zar)}</td>
         <td class="c">${spark(hist)}</td>`;
