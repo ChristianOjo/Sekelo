@@ -132,11 +132,14 @@ select option { background:var(--surface); }
 .f-label { font-family:var(--sans); font-size:9px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-3); margin-bottom:5px; }
 
 /* BRANCH TABS */
-.tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; }
-.tab { padding:10px 20px; font-family:var(--sans); font-size:10px; font-weight:500; letter-spacing:0.5px; color:var(--text-3); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.2s; text-transform:uppercase; }
+.tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; overflow-x:auto; }
+.tab { padding:10px 20px; font-family:var(--sans); font-size:10px; font-weight:500; letter-spacing:0.5px; color:var(--text-3); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.2s; text-transform:uppercase; white-space:nowrap; flex-shrink:0; }
 .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
 .tab-panel { display:none; }
 .tab-panel.active { display:block; }
+
+/* SOURCE BADGE on tabs */
+.tab-source { font-family:var(--mono); font-size:8px; letter-spacing:0; text-transform:none; opacity:0.6; display:block; margin-top:1px; }
 
 /* PRICE ROWS */
 .price-row { display:grid; grid-template-columns:1fr 150px 130px 130px 36px; gap:12px; align-items:center; padding:13px 0; border-bottom:1px solid var(--border); }
@@ -207,7 +210,6 @@ select option { background:var(--surface); }
   .submit-bar { flex-direction:column; gap:12px; align-items:stretch; }
   .btn-primary { text-align:center; padding:14px; }
   .settings-grid { grid-template-columns:1fr; }
-  .tabs { overflow-x:auto; white-space:nowrap; }
   .tab { font-size:9px; padding:10px 12px; }
   .page-title { font-size:22px; }
   .lock-card { width:calc(100vw - 48px); max-width:300px; }
@@ -298,21 +300,10 @@ select option { background:var(--surface); }
         <div class="card-body">
           <div class="form-meta">
             <div><div class="f-label">Date</div><input type="date" id="entryDate"></div>
-            <div><div class="f-label">Primary Source</div>
-              <select id="primarySource">
-                <option value="Cashbuild">Cashbuild</option>
-                <option value="Builders">Builders Warehouse</option>
-                <option value="Local Supplier">Local Supplier</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
             <div><div class="f-label">Notes (optional)</div><input type="text" id="entryNotes" placeholder="e.g. Verified in-store"></div>
           </div>
 
-          <div class="tabs">
-            <div class="tab active" onclick="showBranch('Joburg',this)">Johannesburg — Southgate</div>
-            <div class="tab" onclick="showBranch('Nelspruit',this)">Nelspruit Plaza</div>
-          </div>
+          <div class="tabs" id="branchTabs"></div>
           <div id="branchPanels"></div>
         </div>
       </div>
@@ -372,12 +363,22 @@ select option { background:var(--surface); }
 const SUPABASE_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
 const PASSWORD = 'sekelo2026';
+
+// Each branch has:
+//   key    — unique identifier used for DOM element IDs (no spaces)
+//   city   — city stored in Supabase (matches dashboard queries)
+//   name   — display name stored as `branch` in Supabase
+//   source — default source tag written to the `source` column
 const BRANCHES = [
-  { city:'Joburg',    name:'Southgate | Cashbuild' },
-  { city:'Nelspruit', name:'Nelspruit Plaza | Cashbuild' }
+  { key:'Joburg_CB',    city:'Joburg',    name:'Southgate | Cashbuild',          source:'Cashbuild' },
+  { key:'Nelspruit_CB', city:'Nelspruit', name:'Nelspruit Plaza | Cashbuild',    source:'Cashbuild' },
+  { key:'Joburg_BW',    city:'Joburg',    name:'Johannesburg | Builders Warehouse', source:'Builders Warehouse' },
+  { key:'Mbombela_BW',  city:'Mbombela',  name:'Mbombela | Builders Warehouse',  source:'Builders Warehouse' },
 ];
+
 let materials = [];
 let settings = { borderPremium:20, alertThreshold:5 };
+let activeBranchKey = BRANCHES[0].key;
 
 // ── THEME ──────────────────────────────────────────────────────
 function getTheme() { return localStorage.getItem('sekelo_theme') || 'light'; }
@@ -470,53 +471,63 @@ function renderMatChips() {
 }
 
 // ── PANELS ─────────────────────────────────────────────────────
-let activeBranch = 'Joburg';
-function showBranch(city, tab) {
-  activeBranch = city;
+function showBranch(key, tab) {
+  activeBranchKey = key;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   tab.classList.add('active');
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  const p = document.getElementById(`panel-${city}`);
+  const p = document.getElementById(`panel-${key}`);
   if (p) p.classList.add('active');
 }
+
 function renderBranchPanels() {
-  const c = document.getElementById('branchPanels');
-  if (!materials.length) { c.innerHTML = '<div class="empty-panel">Add materials in the sidebar to begin</div>'; return; }
-  c.innerHTML = BRANCHES.map((b, bi) => `
-    <div class="tab-panel ${bi===0?'active':''}" id="panel-${b.city}">
+  const tabsEl = document.getElementById('branchTabs');
+  const panelsEl = document.getElementById('branchPanels');
+
+  if (!materials.length) {
+    tabsEl.innerHTML = '';
+    panelsEl.innerHTML = '<div class="empty-panel">Add materials in the sidebar to begin</div>';
+    return;
+  }
+
+  // Render tabs dynamically from BRANCHES array
+  tabsEl.innerHTML = BRANCHES.map((b, bi) => `
+    <div class="tab ${bi===0?'active':''}" onclick="showBranch('${b.key}',this)">
+      ${b.name}
+    </div>`).join('');
+
+  // Render panels — use b.key for all DOM IDs, b.city for display only
+  panelsEl.innerHTML = BRANCHES.map((b, bi) => `
+    <div class="tab-panel ${bi===0?'active':''}" id="panel-${b.key}">
       ${materials.map(m => `
         <div class="price-row">
           <div><div class="pr-name">${m.label}</div><div class="pr-id">${m.id}</div></div>
           <div>
             <div class="f-label">ZAR Price</div>
-            <input type="number" step="0.01" min="0" id="p_${b.city}_${m.id}" placeholder="0.00" oninput="calcSZL('${b.city}','${m.id}')">
+            <input type="number" step="0.01" min="0" id="p_${b.key}_${m.id}" placeholder="0.00" oninput="calcSZL('${b.key}','${m.id}')">
           </div>
           <div>
             <div class="f-label">SZL (auto)</div>
-            <div class="szl-auto" id="szl_${b.city}_${m.id}">—</div>
+            <div class="szl-auto" id="szl_${b.key}_${m.id}">—</div>
           </div>
           <div>
             <div class="f-label">Status</div>
-            <select id="av_${b.city}_${m.id}">
+            <select id="av_${b.key}_${m.id}">
               <option value="true">In Stock</option>
               <option value="false">Out of Stock</option>
             </select>
           </div>
-          <div>
-            <div class="f-label" style="opacity:0">·</div>
-            <select id="src_${b.city}_${m.id}" title="Source override">
-              <option value="">Primary</option>
-              <option value="Cashbuild">Cashbuild</option>
-              <option value="Builders">Builders</option>
-              <option value="Local Supplier">Local</option>
-            </select>
+          <div style="visibility:hidden">
+            <div class="f-label">·</div>
+            <div style="width:36px"></div>
           </div>
         </div>`).join('')}
     </div>`).join('');
 }
-function calcSZL(city, id) {
-  const v = parseFloat(document.getElementById(`p_${city}_${id}`)?.value);
-  const el = document.getElementById(`szl_${city}_${id}`);
+
+function calcSZL(key, id) {
+  const v = parseFloat(document.getElementById(`p_${key}_${id}`)?.value);
+  const el = document.getElementById(`szl_${key}_${id}`);
   if (!el) return;
   el.textContent = (!isNaN(v) && v > 0) ? `E ${(v*(1+settings.borderPremium/100)).toFixed(2)}` : '—';
 }
@@ -536,23 +547,43 @@ async function submitPrices() {
   const btn = document.getElementById('submitBtn');
   const note = document.getElementById('submitNote');
   btn.disabled = true; btn.textContent = 'Submitting...';
-  const source = document.getElementById('primarySource').value;
   const premium = settings.borderPremium / 100;
   const records = [];
 
   for (const b of BRANCHES) {
     for (const m of materials) {
-      const zarEl = document.getElementById(`p_${b.city}_${m.id}`);
+      const zarEl = document.getElementById(`p_${b.key}_${m.id}`);
       if (!zarEl) continue;
       const zar = parseFloat(zarEl.value);
-      const available = document.getElementById(`av_${b.city}_${m.id}`)?.value === 'true';
-      const src = document.getElementById(`src_${b.city}_${m.id}`)?.value || source;
+      const available = document.getElementById(`av_${b.key}_${m.id}`)?.value === 'true';
       if (!isNaN(zar) && zar > 0) {
         const prev = await getPrev(m.id, b.city);
         const delta = prev ? parseFloat((((zar-prev)/prev)*100).toFixed(2)) : null;
-        records.push({ material_id:m.id, material:m.label, branch:b.name, city:b.city, source:src, price_zar:zar, price_szl:parseFloat((zar*(1+premium)).toFixed(2)), delta_24h:delta, currency:'ZAR', available });
+        records.push({
+          material_id: m.id,
+          material:    m.label,
+          branch:      b.name,
+          city:        b.city,
+          source:      b.source,
+          price_zar:   zar,
+          price_szl:   parseFloat((zar*(1+premium)).toFixed(2)),
+          delta_24h:   delta,
+          currency:    'ZAR',
+          available
+        });
       } else if (!available) {
-        records.push({ material_id:m.id, material:m.label, branch:b.name, city:b.city, source:src, price_zar:null, price_szl:null, delta_24h:null, currency:'ZAR', available:false });
+        records.push({
+          material_id: m.id,
+          material:    m.label,
+          branch:      b.name,
+          city:        b.city,
+          source:      b.source,
+          price_zar:   null,
+          price_szl:   null,
+          delta_24h:   null,
+          currency:    'ZAR',
+          available:   false
+        });
       }
     }
   }
@@ -568,10 +599,11 @@ async function submitPrices() {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     toast(`${records.length} records saved`);
     note.textContent = `Last submitted: ${new Date().toLocaleString()} — ${records.length} records`;
+    // Clear inputs
     materials.forEach(m => BRANCHES.forEach(b => {
-      const el = document.getElementById(`p_${b.city}_${m.id}`);
+      const el = document.getElementById(`p_${b.key}_${m.id}`);
       if (el) el.value = '';
-      const s = document.getElementById(`szl_${b.city}_${m.id}`);
+      const s = document.getElementById(`szl_${b.key}_${m.id}`);
       if (s) s.textContent = '—';
     }));
   } catch(e) { toast(`Error: ${e.message}`, true); }
