@@ -431,7 +431,7 @@ td.sep { border-left: 1px solid var(--border); }
   </div>
   <div class="header-right">
     <div class="last-updated" id="lastUpdated">—</div>
-    <a href="/bill-of-quantities" style="font-family:var(--sans);font-size:11px;font-weight:500;color:var(--text-3);text-decoration:none;border:1px solid var(--border);padding:6px 14px;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">BoQ Calculator</a>
+    <a href="boq.html" style="font-family:var(--sans);font-size:11px;font-weight:500;color:var(--text-3);text-decoration:none;border:1px solid var(--border);padding:6px 14px;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">BoQ Calculator</a>
     <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">☀</button>
     <button class="btn-export" onclick="exportPDF()">Export PDF</button>
   </div>
@@ -484,12 +484,19 @@ td.sep { border-left: 1px solid var(--border); }
 <script>
 const SUPABASE_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
-const CITIES = ['Joburg', 'Nelspruit'];
-const CITY_LABELS = { Joburg: 'Johannesburg — Southgate', Nelspruit: 'Nelspruit Plaza' };
 const BORDER = 0.20;
+
+// Branch definitions — key must match the `branch` field stored in Supabase exactly
+const BRANCHES = [
+  { key: 'Southgate | Cashbuild',             label: 'Southgate',    sub: 'Cashbuild' },
+  { key: 'Nelspruit Plaza | Cashbuild',        label: 'Nelspruit',    sub: 'Cashbuild' },
+  { key: 'Johannesburg | Builders Warehouse',  label: 'Johannesburg', sub: 'Builders Warehouse' },
+  { key: 'Mbombela | Builders Warehouse',      label: 'Mbombela',     sub: 'Builders Warehouse' },
+];
+
 let allData = [];
 
-// Theme
+// ── THEME ──────────────────────────────────────────────────────
 function getTheme() { return localStorage.getItem('sekelo_theme') || 'light'; }
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
@@ -505,7 +512,7 @@ function toggleTheme() {
   });
 })();
 
-// Data
+// ── DATA ──────────────────────────────────────────────────────
 async function fetchData() {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/prices?order=timestamp.desc&limit=2000&select=*`, {
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
@@ -515,32 +522,40 @@ async function fetchData() {
 }
 
 function processData(rows) {
+  // Group all records by material_id
   const map = {};
   rows.forEach(r => {
     if (!map[r.material_id]) map[r.material_id] = { id: r.material_id, label: r.material, rows: [] };
     map[r.material_id].rows.push(r);
   });
+
   return Object.values(map).map(mat => {
-    const byCity = {};
-    CITIES.forEach(city => {
-      const cr = mat.rows.filter(r => r.city === city && r.available !== false);
-      const latest = cr[0] || null;
+    const byBranch = {};
+    BRANCHES.forEach(b => {
+      // All records for this branch, already sorted desc by timestamp
+      const br = mat.rows.filter(r => r.branch === b.key);
+      // Most recent record regardless of stock status
+      const latest = br[0] || null;
+      // Available records for sparkline history
+      const avail = br.filter(r => r.available !== false && r.price_zar);
+      // Previous week's price for WoW delta — find record closest to 7 days before latest
       let prev = null;
-      if (latest && cr.length > 1) {
+      if (latest && avail.length > 1) {
         const t = new Date(latest.timestamp).getTime() - 7 * 86400000;
-        prev = cr.slice(1).reduce((b, r) => {
+        prev = avail.slice(1).reduce((best, r) => {
           const d = Math.abs(new Date(r.timestamp).getTime() - t);
-          return (!b || d < Math.abs(new Date(b.timestamp).getTime() - t)) ? r : b;
+          return (!best || d < Math.abs(new Date(best.timestamp).getTime() - t)) ? r : best;
         }, null);
       }
-      const hist = cr.slice(0, 8).map(r => r.price_zar).filter(Boolean).reverse();
-      byCity[city] = { latest, prev, hist };
+      const hist = avail.slice(0, 8).map(r => r.price_zar).filter(Boolean).reverse();
+      byBranch[b.key] = { latest, prev, hist };
     });
-    return { ...mat, byCity };
+    return { ...mat, byBranch };
   });
 }
 
-function spark(data, w=68, h=26) {
+// ── HELPERS ──────────────────────────────────────────────────
+function spark(data, w=60, h=26) {
   if (!data || data.length < 2) return `<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--border)" stroke-width="1"/></svg>`;
   const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
   const pts = data.map((v,i) => {
@@ -568,18 +583,21 @@ function fmtDelta(cur, prv) {
   return `<span class="${cls}">${arrow} ${Math.abs(p).toFixed(1)}%</span>`;
 }
 
+// ── RENDER ──────────────────────────────────────────────────
 function renderTable(mats) {
   if (!mats.length) return `<div class="state-box"><div class="state-title">No data yet</div><div class="state-sub">Enter prices via the admin panel to populate this dashboard</div></div>`;
 
+  // Latest timestamp across all branches
   let latestTs = null;
-  mats.forEach(m => CITIES.forEach(c => {
-    const ts = m.byCity[c]?.latest?.timestamp;
+  mats.forEach(m => BRANCHES.forEach(b => {
+    const ts = m.byBranch[b.key]?.latest?.timestamp;
     if (ts && (!latestTs || ts > latestTs)) latestTs = ts;
   }));
 
-  const srcs = [...new Set(mats.flatMap(m => CITIES.map(c => m.byCity[c]?.latest?.source)).filter(Boolean))];
+  // Unique sources for stat bar
+  const srcs = [...new Set(BRANCHES.map(b => b.sub))];
   document.getElementById('statMaterials').textContent = mats.length;
-  document.getElementById('statSources').textContent = srcs.length ? srcs.join(', ') : '—';
+  document.getElementById('statSources').textContent = srcs.join(', ');
 
   if (latestTs) {
     const d = new Date(latestTs);
@@ -587,10 +605,10 @@ function renderTable(mats) {
     document.getElementById('dateLabel').textContent = d.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   }
 
-  // Biggest mover
+  // Biggest mover across all branches
   let bigPct = 0, bigLabel = '—', bigDir = '';
-  mats.forEach(m => CITIES.forEach(c => {
-    const { latest, prev } = m.byCity[c];
+  mats.forEach(m => BRANCHES.forEach(b => {
+    const { latest, prev } = m.byBranch[b.key];
     if (latest?.price_zar && prev?.price_zar) {
       const p = ((latest.price_zar - prev.price_zar)/prev.price_zar)*100;
       if (Math.abs(p) > bigPct) {
@@ -604,23 +622,25 @@ function renderTable(mats) {
 
   const rows = mats.map((mat, idx) => {
     let isSpike = false;
-    CITIES.forEach(c => {
-      const { latest, prev } = mat.byCity[c];
+    BRANCHES.forEach(b => {
+      const { latest, prev } = mat.byBranch[b.key];
       if (latest?.price_zar && prev?.price_zar) {
         if (Math.abs(((latest.price_zar-prev.price_zar)/prev.price_zar)*100) >= 5) isSpike = true;
       }
     });
-    const src = CITIES.map(c => mat.byCity[c]?.latest?.source).filter(Boolean)[0] || '—';
     const spikeDot = isSpike ? '<span class="spike-dot" title="Price moved ≥5% this week"></span>' : '';
 
-    let cityCols = '';
-    CITIES.forEach((city, ci) => {
-      const { latest, prev, hist } = mat.byCity[city];
-      const zar = latest?.price_zar;
-      const sep = ci === 0 ? 'sep' : '';
-      cityCols += `
+    let branchCols = '';
+    BRANCHES.forEach((b, bi) => {
+      const { latest, prev, hist } = mat.byBranch[b.key];
+      const inStock = latest?.available !== false;
+      const zar = (inStock && latest?.price_zar) ? latest.price_zar : null;
+      const sep = bi === 0 ? '' : 'sep';
+      branchCols += `
         <td class="r ${sep}">
-          ${zar ? `<div class="price-main">${fmtZAR(zar)}</div><div class="price-sub">${fmtSZL(zar)}</div>` : `<span class="na">Out of Stock</span>`}
+          ${zar
+            ? `<div class="price-main">${fmtZAR(zar)}</div><div class="price-sub">${fmtSZL(zar)}</div>`
+            : `<span class="na">Out of Stock</span>`}
         </td>
         <td class="r">${fmtDelta(zar, prev?.price_zar)}</td>
         <td class="c">${spark(hist)}</td>`;
@@ -628,32 +648,36 @@ function renderTable(mats) {
 
     return `<tr class="${isSpike?'spike':''}" style="animation:fadeIn 0.3s ${idx*0.04+0.1}s both">
       <td><div class="mat-name">${mat.label}${spikeDot}</div></td>
-      <td><span class="source-pill">${src}</span></td>
-      ${cityCols}
+      ${branchCols}
     </tr>`;
   }).join('');
+
+  // Build branch header columns
+  const branchHeaders1 = BRANCHES.map((b, bi) =>
+    `<th class="thead-city${bi>0?' sep':''}" colspan="3">
+      ${b.label}<br><span style="font-family:var(--mono);font-size:8px;font-weight:400;opacity:0.65;text-transform:none;letter-spacing:0">${b.sub}</span>
+    </th>`
+  ).join('');
+
+  const branchHeaders2 = BRANCHES.map((b, bi) => `
+    <th class="r${bi>0?' sep':''}" style="min-width:110px">ZAR / SZL</th>
+    <th class="r" style="min-width:72px">WoW</th>
+    <th class="c" style="min-width:72px">Trend</th>`
+  ).join('');
 
   return `<table>
     <thead>
       <tr>
-        <th rowspan="2" style="min-width:220px">Material</th>
-        <th rowspan="2">Source</th>
-        <th class="thead-city sep" colspan="3">${CITY_LABELS['Joburg']}</th>
-        <th class="thead-city sep" colspan="3">${CITY_LABELS['Nelspruit']}</th>
+        <th rowspan="2" style="min-width:210px">Material</th>
+        ${branchHeaders1}
       </tr>
-      <tr>
-        <th class="r sep" style="min-width:120px">ZAR / SZL</th>
-        <th class="r" style="min-width:80px">WoW</th>
-        <th class="c" style="min-width:80px">Trend</th>
-        <th class="r sep" style="min-width:120px">ZAR / SZL</th>
-        <th class="r" style="min-width:80px">WoW</th>
-        <th class="c" style="min-width:80px">Trend</th>
-      </tr>
+      <tr>${branchHeaders2}</tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
 
+// ── INIT ──────────────────────────────────────────────────────
 async function init() {
   try {
     allData = await fetchData();
@@ -664,6 +688,7 @@ async function init() {
   }
 }
 
+// ── PDF EXPORT ────────────────────────────────────────────────
 async function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
@@ -681,12 +706,12 @@ async function exportPDF() {
   doc.setDrawColor(200,180,140); doc.line(14,32,283,32);
 
   const mats = processData(allData);
+  const head = ['Material', ...BRANCHES.flatMap(b => [`${b.label} ZAR`, `${b.label} SZL`, `${b.label} WoW`])];
   const rows = mats.map(m => {
-    const src = CITIES.map(c => m.byCity[c]?.latest?.source).filter(Boolean)[0] || '—';
-    const row = [m.label, src];
-    CITIES.forEach(c => {
-      const { latest, prev } = m.byCity[c];
-      const zar = latest?.price_zar;
+    const row = [m.label];
+    BRANCHES.forEach(b => {
+      const { latest, prev } = m.byBranch[b.key];
+      const zar = (latest?.available !== false && latest?.price_zar) ? latest.price_zar : null;
       const szl = zar ? (zar*1.20).toFixed(2) : '—';
       const d = (zar && prev?.price_zar) ? (((zar-prev.price_zar)/prev.price_zar)*100).toFixed(1)+'%' : '—';
       row.push(zar ? `R ${parseFloat(zar).toFixed(2)}` : '—', zar ? `E ${szl}` : '—', d);
@@ -696,11 +721,11 @@ async function exportPDF() {
 
   doc.autoTable({
     startY: 36,
-    head: [['Material','Source','JHB ZAR','JHB SZL','JHB WoW','NLP ZAR','NLP SZL','NLP WoW']],
+    head: [head],
     body: rows,
     theme: 'grid',
-    headStyles: { fillColor:[26,24,20], textColor:[139,105,20], fontSize:7, fontStyle:'bold', cellPadding:4 },
-    bodyStyles: { fillColor:bg, textColor:fg, fontSize:8, cellPadding:5 },
+    headStyles: { fillColor:[26,24,20], textColor:[139,105,20], fontSize:6, fontStyle:'bold', cellPadding:3 },
+    bodyStyles: { fillColor:bg, textColor:fg, fontSize:7, cellPadding:4 },
     alternateRowStyles: { fillColor: isDark ? [19,26,36] : [242,238,232] },
     margin: { left:14, right:14 }
   });
