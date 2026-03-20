@@ -216,12 +216,17 @@ async function init(){
 }
 
 function renderTabs(){
-  document.getElementById('branchTabs').innerHTML=BRANCHES.map(b=>
-    `<div class="btab ${b.key===activeBranch?'active':''}" onclick="switchBranch(${JSON.stringify(b.key)})">${b.label}<span class="bsrc">${b.source}</span></div>`
-  ).join('');
+  document.getElementById('branchTabs').innerHTML=BRANCHES.map(b=>{
+    const idx=BRANCHES.indexOf(b);
+    return `<div class="btab ${b.key===activeBranch?'active':''}" onclick="switchBranch(${idx})">${b.label}<span class="bsrc">${b.source}</span></div>`;
+  }).join('');
 }
 
-function switchBranch(key){activeBranch=key;renderTabs();renderBranch(key);}
+function switchBranch(idx){
+  activeBranch=BRANCHES[idx].key;
+  renderTabs();
+  renderBranch(activeBranch);
+}
 
 function renderBranch(bk){
   const b=BRANCHES.find(x=>x.key===bk);
