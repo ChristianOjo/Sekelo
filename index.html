@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,732 +9,417 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <style>
-:root {
-  --bg:        #F7F4EF;
-  --surface:   #FFFFFF;
-  --surface-2: #F2EEE8;
-  --border:    #E2D9CC;
-  --border-2:  #D0C4B3;
-  --accent:    #8B6914;
-  --accent-bg: rgba(139,105,20,0.06);
-  --up:        #B83232;
-  --up-bg:     rgba(184,50,50,0.06);
-  --down:      #2D6B4A;
-  --down-bg:   rgba(45,107,74,0.06);
-  --text:      #1A1814;
-  --text-2:    #6B5E4E;
-  --text-3:    #A89880;
-  --text-4:    #C8BAA8;
-  --serif:     'Cormorant Garamond', Georgia, serif;
-  --sans:      'DM Sans', sans-serif;
-  --mono:      'JetBrains Mono', monospace;
-  --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+:root{
+  --bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;--border:#1E2C3C;--border-2:#253545;
+  --accent:#C8A55A;--accent-bg:rgba(200,165,90,0.08);
+  --up:#E05555;--up-bg:rgba(224,85,85,0.08);
+  --down:#3DAA6E;--down-bg:rgba(61,170,110,0.08);
+  --text:#E8E2D5;--text-2:#9A9080;--text-3:#5A5245;--text-4:#3A342C;
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,0.3);
 }
-[data-theme="dark"] {
-  --bg:        #0C1018;
-  --surface:   #131A24;
-  --surface-2: #1A2330;
-  --border:    #1E2C3C;
-  --border-2:  #253545;
-  --accent:    #C8A55A;
-  --accent-bg: rgba(200,165,90,0.08);
-  --up:        #E05555;
-  --up-bg:     rgba(224,85,85,0.08);
-  --down:      #3DAA6E;
-  --down-bg:   rgba(61,170,110,0.08);
-  --text:      #E8E2D5;
-  --text-2:    #9A9080;
-  --text-3:    #5A5245;
-  --text-4:    #3A342C;
-  --shadow:    0 1px 3px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+[data-theme="light"]{
+  --bg:#F7F4EF;--surface:#FFFFFF;--surface-2:#F2EEE8;--border:#E2D9CC;--border-2:#D0C4B3;
+  --accent:#8B6914;--accent-bg:rgba(139,105,20,0.06);
+  --up:#B83232;--up-bg:rgba(184,50,50,0.06);
+  --down:#2D6B4A;--down-bg:rgba(45,107,74,0.06);
+  --text:#1A1814;--text-2:#6B5E4E;--text-3:#A89880;--text-4:#C8BAA8;
+  --shadow:0 1px 3px rgba(0,0,0,0.06);
 }
+*{margin:0;padding:0;box-sizing:border-box;}html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;min-height:100vh;transition:background .25s,color .25s;-webkit-font-smoothing:antialiased;}
 
-* { margin:0; padding:0; box-sizing:border-box; }
-html { font-size:14px; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-weight: 300;
-  min-height: 100vh;
-  transition: background 0.25s, color 0.25s;
-  -webkit-font-smoothing: antialiased;
-}
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+.logo-wrap{display:flex;align-items:baseline;gap:10px;text-decoration:none;}
+.logo{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--text);letter-spacing:.5px;}
+.logo-rule{width:1px;height:14px;background:var(--border-2);align-self:center;}
+.logo-sub{font-family:var(--sans);font-size:11px;font-weight:300;color:var(--text-3);}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.nav-link{font-family:var(--sans);font-size:11px;font-weight:400;color:var(--text-3);text-decoration:none;padding:6px 12px;border:1px solid transparent;transition:all .2s;}
+.nav-link:hover{color:var(--accent);border-color:var(--border);}
+.theme-btn{background:none;border:1px solid var(--border);color:var(--text-3);width:32px;height:32px;cursor:pointer;font-size:14px;transition:all .2s;}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent);}
+.export-btn{background:none;border:1px solid var(--accent);color:var(--accent);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.5px;padding:6px 14px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+.export-btn:hover{background:var(--accent);color:var(--surface);}
 
-/* ── HEADER ── */
-.header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: var(--shadow);
-  transition: background 0.25s, border-color 0.25s;
-}
-.header-left { display:flex; align-items:baseline; gap:16px; }
-.logo {
-  font-family: var(--serif);
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: var(--text);
-}
-.logo-rule {
-  width: 1px;
-  height: 14px;
-  background: var(--border-2);
-  align-self: center;
-}
-.logo-sub {
-  font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 300;
-  color: var(--text-3);
-  letter-spacing: 0.3px;
-}
-.header-right { display:flex; align-items:center; gap:20px; }
-.last-updated {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-3);
-  letter-spacing: 0.3px;
-}
-.last-updated b { color: var(--text-2); font-weight: 500; }
-.theme-toggle {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-3);
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: all 0.2s;
-  border-radius: 2px;
-}
-.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.btn-export {
-  font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: var(--accent);
-  background: none;
-  border: 1px solid var(--accent);
-  padding: 6px 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-export:hover { background: var(--accent); color: var(--surface); }
+/* SUBHEADER */
+.subhdr{background:var(--surface-2);border-bottom:1px solid var(--border);padding:7px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.sub-l{font-family:var(--serif);font-size:12px;font-style:italic;color:var(--text-3);}
+.sub-r{display:flex;align-items:center;gap:16px;}
+.sub-stat{font-family:var(--mono);font-size:9px;color:var(--text-4);}
+.sub-stat b{color:var(--text-3);font-weight:500;}
+.last-updated{font-family:var(--mono);font-size:9px;color:var(--text-4);}
+.last-updated b{color:var(--accent);font-weight:500;}
 
-/* ── DATE STRIP ── */
-.date-strip {
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-  padding: 7px 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.date-strip-left {
-  font-family: var(--serif);
-  font-size: 12px;
-  font-style: italic;
-  color: var(--text-3);
-}
-.date-strip-right {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-}
-.strip-stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.strip-stat-label {
-  font-family: var(--sans);
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-.strip-stat-value {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-2);
-}
-.strip-stat-value.accent { color: var(--accent); }
-.strip-divider { width: 1px; height: 12px; background: var(--border); }
+/* MAIN */
+.main{padding:20px 32px 48px;}
 
-/* ── MAIN ── */
-.main { padding: 32px 40px; max-width: 1400px; }
+/* BRANCH LEGEND */
+.legend{display:flex;gap:1px;margin-bottom:16px;background:var(--border);}
+.leg-cell{flex:1;background:var(--surface);padding:10px 14px;}
+.leg-branch{font-family:var(--sans);font-size:10px;font-weight:500;color:var(--text);text-transform:uppercase;letter-spacing:.5px;}
+.leg-src{font-family:var(--mono);font-size:8px;color:var(--text-3);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+.leg-city{font-family:var(--mono);font-size:8px;color:var(--text-4);margin-top:1px;}
 
-.section-label {
-  font-family: var(--sans);
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--text-3);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.section-label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
+/* CATEGORY SECTION */
+.catsec{margin-bottom:10px;background:var(--surface);border:1px solid var(--border);overflow:hidden;animation:fadeIn .3s forwards;}
+.cathdr{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s;}
+.cathdr:hover{background:var(--surface-2);}
+.cat-l{display:flex;align-items:center;gap:12px;}
+.catname{font-family:var(--sans);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);}
+.catpill{font-family:var(--mono);font-size:8px;color:var(--text-3);padding:2px 7px;border:1px solid var(--border-2);}
+.catpill.full{color:var(--down);border-color:rgba(61,170,110,.3);}
+.cat-r{display:flex;align-items:center;gap:12px;}
+.cattog{font-family:var(--mono);font-size:12px;color:var(--text-3);width:20px;text-align:center;}
 
-/* ── TABLE ── */
-.table-container {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  overflow-x: auto;
-  opacity: 0;
-  animation: fadeIn 0.4s 0.1s ease forwards;
-  transition: background 0.25s, border-color 0.25s;
-}
-table { width: 100%; border-collapse: collapse; }
-thead { border-bottom: 2px solid var(--border); }
-.thead-city {
-  font-family: var(--sans);
-  font-size: 9px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--accent);
-  padding: 10px 20px 4px;
-  text-align: center;
-  border-bottom: 1px solid var(--accent-bg);
-}
-.thead-city.sep { border-left: 1px solid var(--border); }
-th {
-  font-family: var(--sans);
-  font-size: 9px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-3);
-  padding: 6px 20px 10px;
-  text-align: left;
-  white-space: nowrap;
-}
-th.r { text-align: right; }
-th.c { text-align: center; }
-th.sep { border-left: 1px solid var(--border); }
-tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-}
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: var(--surface-2); }
-tbody tr.spike { background: var(--accent-bg); }
-tbody tr.spike:hover { background: rgba(139,105,20,0.1); }
-td {
-  padding: 16px 20px;
-  font-family: var(--sans);
-  font-size: 12px;
-  font-weight: 300;
-  color: var(--text);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-td.r { text-align: right; }
-td.c { text-align: center; }
-td.sep { border-left: 1px solid var(--border); }
+/* PRODUCT TABLE */
+.catbody{border-top:1px solid var(--border);overflow-x:auto;}
+.catbody.collapsed{display:none;}
+.ptable{width:100%;border-collapse:collapse;min-width:800px;}
+.ptable thead tr{border-bottom:1px solid var(--border);}
+.ptable th{font-family:var(--sans);font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:7px 14px;text-align:left;}
+.ptable th.branch-th{text-align:right;border-left:1px solid var(--border);}
+.ptable tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+.ptable tbody tr:last-child{border-bottom:none;}
+.ptable tbody tr:hover{background:var(--surface-2);}
+.ptable td{padding:10px 14px;vertical-align:middle;}
+.ptable td.branch-td{text-align:right;border-left:1px solid var(--border);vertical-align:top;padding:10px 14px;}
 
-.mat-name {
-  font-family: var(--serif);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  letter-spacing: 0.1px;
-}
-.mat-id {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-4);
-  margin-top: 3px;
-  letter-spacing: 0.3px;
-}
-.source-pill {
-  display: inline-block;
-  font-family: var(--sans);
-  font-size: 9px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-3);
-  border: 1px solid var(--border);
-  padding: 2px 8px;
-  background: var(--surface-2);
-}
-.price-main {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-}
-.price-sub {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-3);
-  margin-top: 2px;
-}
-.na { font-family: var(--mono); font-size: 11px; color: var(--text-4); }
+/* PRODUCT NAME CELL */
+.pname{font-family:var(--sans);font-size:12px;font-weight:400;color:var(--text);}
+.upill{display:inline-block;font-family:var(--mono);font-size:8px;color:var(--text-3);border:1px solid var(--border-2);padding:2px 7px;margin-top:4px;}
 
-.delta-up {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--up);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 3px;
-}
-.delta-down {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--down);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 3px;
-}
-.delta-flat {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-4);
-  text-align: right;
-}
-.spike-dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-left: 6px;
-  vertical-align: middle;
-  animation: pulse 2s infinite;
-}
+/* PRICE CELL */
+.pc-zar{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);}
+.pc-szl{font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:2px;}
+.pc-norm{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-top:2px;}
+.pc-wow{display:inline-block;font-family:var(--mono);font-size:8px;padding:1px 5px;margin-top:3px;letter-spacing:.3px;}
+.pc-wow.up{background:var(--up-bg);color:var(--up);}
+.pc-wow.down{background:var(--down-bg);color:var(--down);}
+.pc-wow.flat{color:var(--text-3);}
+.pc-na{font-family:var(--mono);font-size:10px;color:var(--text-4);}
+.pc-oos{font-family:var(--sans);font-size:9px;color:var(--text-3);font-style:italic;}
 
-/* ── SPARKLINE ── */
-.spark { display: block; }
+/* LOADING */
+.loading{padding:80px;text-align:center;}
+.ldots{display:inline-flex;gap:5px;margin-bottom:12px;}
+.ldots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite;}
+.ldots span:nth-child(2){animation-delay:.2s;}.ldots span:nth-child(3){animation-delay:.4s;}
+.ltext{font-family:var(--mono);font-size:10px;color:var(--text-4);}
 
-/* ── FOOTER ── */
-.footer {
-  padding: 20px 40px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 32px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.footer-text {
-  font-family: var(--sans);
-  font-size: 10px;
-  font-weight: 300;
-  color: var(--text-4);
-}
-.footer-text b { color: var(--text-3); font-weight: 400; }
+/* FOOTER */
+.footer{padding:20px 32px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.footer-text{font-family:var(--sans);font-size:10px;color:var(--text-4);}
+.footer-text b{color:var(--text-3);font-weight:400;}
+.disclaimer{font-family:var(--sans);font-size:9px;color:var(--text-4);line-height:1.5;max-width:600px;}
 
-/* ── STATES ── */
-.state-box {
-  padding: 64px 40px;
-  text-align: center;
-}
-.state-title {
-  font-family: var(--serif);
-  font-size: 20px;
-  font-style: italic;
-  color: var(--text-3);
-  margin-bottom: 8px;
-}
-.state-sub {
-  font-family: var(--sans);
-  font-size: 11px;
-  color: var(--text-4);
-  letter-spacing: 0.3px;
-}
-.loading-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.loading-row span {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: blink 1.2s infinite;
-}
-.loading-row span:nth-child(2) { animation-delay: 0.2s; }
-.loading-row span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
+::-webkit-scrollbar{width:3px;height:3px;}::-webkit-scrollbar-thumb{background:var(--border-2);}
 
-/* ── ANIMATIONS ── */
-@keyframes fadeIn {
-  from { opacity:0; transform:translateY(6px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-@keyframes blink {
-  0%,80%,100% { opacity:0.15; }
-  40%         { opacity:1; }
-}
-@keyframes pulse {
-  0%,100% { opacity:1; }
-  50%     { opacity:0.35; }
-}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width:3px; height:3px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--border-2); }
-
-@media(max-width:768px) {
-  .header { padding:0 20px; }
-  .main { padding:20px; }
-  .date-strip { padding:7px 20px; }
-  .footer { padding:16px 20px; }
-  .logo-sub, .last-updated { display:none; }
+@media(max-width:768px){
+  .header,.subhdr,.main,.footer{padding-left:16px;padding-right:16px;}
+  .logo-sub{display:none;}
+  .legend{display:none;}
+  .sub-r{gap:8px;}
 }
 </style>
 </head>
 <body>
 
 <header class="header">
-  <div class="header-left">
+  <a href="/" class="logo-wrap">
     <div class="logo">Sekelo</div>
     <div class="logo-rule"></div>
-    <div class="logo-sub">Construction Price Intelligence · Eswatini</div>
-  </div>
-  <div class="header-right">
-    <div class="last-updated" id="lastUpdated">—</div>
-    <a href="boq.html" style="font-family:var(--sans);font-size:11px;font-weight:500;color:var(--text-3);text-decoration:none;border:1px solid var(--border);padding:6px 14px;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">BoQ Calculator</a>
-    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">☀</button>
-    <button class="btn-export" onclick="exportPDF()">Export PDF</button>
+    <div class="logo-sub">Construction Price Intelligence</div>
+  </a>
+  <div class="hdr-right">
+    <a href="boq.html" class="nav-link">BoQ Calculator</a>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀</button>
+    <button class="export-btn" onclick="exportPDF()">Export PDF</button>
   </div>
 </header>
 
-<div class="date-strip">
-  <div class="date-strip-left" id="dateLabel">—</div>
-  <div class="date-strip-right">
-    <div class="strip-stat">
-      <span class="strip-stat-label">Materials</span>
-      <span class="strip-stat-value accent" id="statMaterials">—</span>
-    </div>
-    <div class="strip-divider"></div>
-    <div class="strip-stat">
-      <span class="strip-stat-label">Border Premium</span>
-      <span class="strip-stat-value">20%</span>
-    </div>
-    <div class="strip-divider"></div>
-    <div class="strip-stat">
-      <span class="strip-stat-label">Biggest Mover</span>
-      <span class="strip-stat-value" id="statMover">—</span>
-    </div>
-    <div class="strip-divider"></div>
-    <div class="strip-stat">
-      <span class="strip-stat-label">Sources</span>
-      <span class="strip-stat-value" id="statSources">—</span>
-    </div>
+<div class="subhdr">
+  <div class="sub-l">Material Price Index — Eswatini & South Africa</div>
+  <div class="sub-r">
+    <div class="sub-stat"><b id="statCats">—</b> categories</div>
+    <div class="sub-stat"><b id="statProds">—</b> products tracked</div>
+    <div class="sub-stat"><b id="statBranches">4</b> branches</div>
+    <div class="last-updated">Updated <b id="lastUpdated">—</b></div>
   </div>
 </div>
 
 <main class="main">
-  <div class="section-label">Weekly Price Index</div>
-  <div class="table-container" id="tableContainer">
-    <div class="state-box">
-      <div class="loading-row"><span></span><span></span><span></span></div>
-      <div class="state-sub">Retrieving price data</div>
-    </div>
+  <div class="legend" id="branchLegend"></div>
+
+  <div id="loadState" class="loading">
+    <div class="ldots"><span></span><span></span><span></span></div>
+    <div class="ltext">Loading price index</div>
   </div>
+
+  <div id="dashContent" style="display:none"></div>
 </main>
 
 <footer class="footer">
-  <div class="footer-text">
-    Border premium of <b>20%</b> applied to all ZAR → SZL conversions &nbsp;·&nbsp;
-    Prices sourced from South African building retailers &nbsp;·&nbsp;
-    Updated weekly
-  </div>
   <div class="footer-text"><b>Sekelo</b> · Eswatini Construction Intelligence · 2026</div>
+  <div class="disclaimer">Prices verified biweekly against live retailer websites. SZL includes 20% border premium (transport, clearing, supplier margin). For procurement reference only — verify directly with suppliers before committing.</div>
 </footer>
 
 <script>
-const SUPABASE_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
+const SB_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdX8';
 const BORDER = 0.20;
 
-// Branch definitions — key must match the `branch` field stored in Supabase exactly
 const BRANCHES = [
-  { key: 'Southgate | Cashbuild',             label: 'Southgate',    sub: 'Cashbuild' },
-  { key: 'Nelspruit Plaza | Cashbuild',        label: 'Nelspruit',    sub: 'Cashbuild' },
-  { key: 'Johannesburg | Builders Warehouse',  label: 'Johannesburg', sub: 'Builders Warehouse' },
-  { key: 'Mbombela | Builders Warehouse',      label: 'Mbombela',     sub: 'Builders Warehouse' },
+  {key:'Southgate | Cashbuild',             label:'Southgate',       source:'Cashbuild',         city:'Johannesburg'},
+  {key:'Nelspruit Plaza | Cashbuild',       label:'Nelspruit Plaza', source:'Cashbuild',         city:'Nelspruit'},
+  {key:'Johannesburg | Builders Warehouse', label:'Johannesburg',    source:'Builders Warehouse',city:'Johannesburg'},
+  {key:'Mbombela | Builders Warehouse',     label:'Mbombela',        source:'Builders Warehouse',city:'Mbombela'},
 ];
 
-let allData = [];
+let categories=[], products=[], priceMap={};
+// priceMap[productId][branchKey] = { current:{price_zar,price_szl,normalized_price,timestamp}, previous:{...} }
 
-// ── THEME ──────────────────────────────────────────────────────
-function getTheme() { return localStorage.getItem('sekelo_theme') || 'light'; }
-function toggleTheme() {
-  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem('sekelo_theme', next);
-  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀' : '☾';
-}
-(function() {
-  const t = getTheme();
-  document.documentElement.dataset.theme = t;
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('themeBtn').textContent = t === 'dark' ? '☀' : '☾';
-  });
-})();
-
-// ── DATA ──────────────────────────────────────────────────────
-async function fetchData() {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/prices?order=timestamp.desc&limit=2000&select=*`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-  });
-  if (!r.ok) throw new Error('Failed to load');
+async function get(path){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
+  if(!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
 
-function processData(rows) {
-  // Group all records by material_id
-  const map = {};
-  rows.forEach(r => {
-    if (!map[r.material_id]) map[r.material_id] = { id: r.material_id, label: r.material, rows: [] };
-    map[r.material_id].rows.push(r);
-  });
+async function init(){
+  try{
+    [categories,products]=await Promise.all([
+      get('categories?select=*&order=display_order&active=eq.true'),
+      get('products?select=*&order=display_order&active=eq.true'),
+    ]);
 
-  return Object.values(map).map(mat => {
-    const byBranch = {};
-    BRANCHES.forEach(b => {
-      // All records for this branch, already sorted desc by timestamp
-      const br = mat.rows.filter(r => r.branch === b.key);
-      // Most recent record regardless of stock status
-      const latest = br[0] || null;
-      // Available records for sparkline history
-      const avail = br.filter(r => r.available !== false && r.price_zar);
-      // Previous week's price for WoW delta — find record closest to 7 days before latest
-      let prev = null;
-      if (latest && avail.length > 1) {
-        const t = new Date(latest.timestamp).getTime() - 7 * 86400000;
-        prev = avail.slice(1).reduce((best, r) => {
-          const d = Math.abs(new Date(r.timestamp).getTime() - t);
-          return (!best || d < Math.abs(new Date(best.timestamp).getTime() - t)) ? r : best;
-        }, null);
+    // Fetch recent prices — enough to get current + previous per product+branch
+    const prices=await get('prices?select=product_id,branch,price_zar,price_szl,normalized_price,available,timestamp&product_id=not.is.null&order=timestamp.desc&limit=800');
+
+    // Build price map — first occurrence = current, second = previous
+    prices.forEach(p=>{
+      if(!p.product_id)return;
+      if(!priceMap[p.product_id])priceMap[p.product_id]={};
+      if(!priceMap[p.product_id][p.branch]){
+        priceMap[p.product_id][p.branch]={current:p,previous:null};
+      } else if(!priceMap[p.product_id][p.branch].previous){
+        priceMap[p.product_id][p.branch].previous=p;
       }
-      const hist = avail.slice(0, 8).map(r => r.price_zar).filter(Boolean).reverse();
-      byBranch[b.key] = { latest, prev, hist };
     });
-    return { ...mat, byBranch };
-  });
-}
 
-// ── HELPERS ──────────────────────────────────────────────────
-function spark(data, w=60, h=26) {
-  if (!data || data.length < 2) return `<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--border)" stroke-width="1"/></svg>`;
-  const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
-  const pts = data.map((v,i) => {
-    const x = (i/(data.length-1))*(w-4)+2;
-    const y = (h-6)-((v-min)/range)*(h-6)+3;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  const last = data[data.length-1], first = data[0];
-  const col = last > first ? 'var(--up)' : last < first ? 'var(--down)' : 'var(--text-4)';
-  const lx = w-2, ly = (h-6)-((last-min)/range)*(h-6)+3;
-  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.8"/>
-    <circle cx="${lx}" cy="${ly}" r="2" fill="${col}"/>
-  </svg>`;
-}
+    // Stats
+    document.getElementById('statCats').textContent=categories.length;
+    document.getElementById('statProds').textContent=products.length;
 
-function fmtZAR(v) { return v ? `R ${parseFloat(v).toFixed(2)}` : null; }
-function fmtSZL(v) { return v ? `E ${(parseFloat(v)*(1+BORDER)).toFixed(2)}` : null; }
-function fmtDelta(cur, prv) {
-  if (!cur || !prv) return `<span class="delta-flat">—</span>`;
-  const p = ((cur-prv)/prv)*100;
-  if (Math.abs(p) < 0.05) return `<span class="delta-flat">—</span>`;
-  const cls = p > 0 ? 'delta-up' : 'delta-down';
-  const arrow = p > 0 ? '↑' : '↓';
-  return `<span class="${cls}">${arrow} ${Math.abs(p).toFixed(1)}%</span>`;
-}
-
-// ── RENDER ──────────────────────────────────────────────────
-function renderTable(mats) {
-  if (!mats.length) return `<div class="state-box"><div class="state-title">No data yet</div><div class="state-sub">Enter prices via the admin panel to populate this dashboard</div></div>`;
-
-  // Latest timestamp across all branches
-  let latestTs = null;
-  mats.forEach(m => BRANCHES.forEach(b => {
-    const ts = m.byBranch[b.key]?.latest?.timestamp;
-    if (ts && (!latestTs || ts > latestTs)) latestTs = ts;
-  }));
-
-  // Unique sources for stat bar
-  const srcs = [...new Set(BRANCHES.map(b => b.sub))];
-  document.getElementById('statMaterials').textContent = mats.length;
-  document.getElementById('statSources').textContent = srcs.join(', ');
-
-  if (latestTs) {
-    const d = new Date(latestTs);
-    document.getElementById('lastUpdated').innerHTML = `Updated <b>${d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})}</b>`;
-    document.getElementById('dateLabel').textContent = d.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  }
-
-  // Biggest mover across all branches
-  let bigPct = 0, bigLabel = '—', bigDir = '';
-  mats.forEach(m => BRANCHES.forEach(b => {
-    const { latest, prev } = m.byBranch[b.key];
-    if (latest?.price_zar && prev?.price_zar) {
-      const p = ((latest.price_zar - prev.price_zar)/prev.price_zar)*100;
-      if (Math.abs(p) > bigPct) {
-        bigPct = Math.abs(p);
-        bigDir = p > 0 ? '↑' : '↓';
-        bigLabel = m.label.split(' ').slice(0,2).join(' ');
-      }
+    // Last updated = most recent timestamp in the dataset
+    if(prices.length){
+      const ts=new Date(prices[0].timestamp);
+      document.getElementById('lastUpdated').textContent=ts.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'});
     }
-  }));
-  if (bigLabel !== '—') document.getElementById('statMover').textContent = `${bigLabel} ${bigDir}${bigPct.toFixed(1)}%`;
 
-  const rows = mats.map((mat, idx) => {
-    let isSpike = false;
-    BRANCHES.forEach(b => {
-      const { latest, prev } = mat.byBranch[b.key];
-      if (latest?.price_zar && prev?.price_zar) {
-        if (Math.abs(((latest.price_zar-prev.price_zar)/prev.price_zar)*100) >= 5) isSpike = true;
-      }
-    });
-    const spikeDot = isSpike ? '<span class="spike-dot" title="Price moved ≥5% this week"></span>' : '';
+    renderLegend();
+    renderDashboard();
 
-    let branchCols = '';
-    BRANCHES.forEach((b, bi) => {
-      const { latest, prev, hist } = mat.byBranch[b.key];
-      const inStock = latest?.available !== false;
-      const zar = (inStock && latest?.price_zar) ? latest.price_zar : null;
-      const sep = bi === 0 ? '' : 'sep';
-      branchCols += `
-        <td class="r ${sep}">
-          ${zar
-            ? `<div class="price-main">${fmtZAR(zar)}</div><div class="price-sub">${fmtSZL(zar)}</div>`
-            : `<span class="na">Out of Stock</span>`}
-        </td>
-        <td class="r">${fmtDelta(zar, prev?.price_zar)}</td>
-        <td class="c">${spark(hist)}</td>`;
-    });
-
-    return `<tr class="${isSpike?'spike':''}" style="animation:fadeIn 0.3s ${idx*0.04+0.1}s both">
-      <td><div class="mat-name">${mat.label}${spikeDot}</div></td>
-      ${branchCols}
-    </tr>`;
-  }).join('');
-
-  // Build branch header columns
-  const branchHeaders1 = BRANCHES.map((b, bi) =>
-    `<th class="thead-city${bi>0?' sep':''}" colspan="3">
-      ${b.label}<br><span style="font-family:var(--mono);font-size:8px;font-weight:400;opacity:0.65;text-transform:none;letter-spacing:0">${b.sub}</span>
-    </th>`
-  ).join('');
-
-  const branchHeaders2 = BRANCHES.map((b, bi) => `
-    <th class="r${bi>0?' sep':''}" style="min-width:110px">ZAR / SZL</th>
-    <th class="r" style="min-width:72px">WoW</th>
-    <th class="c" style="min-width:72px">Trend</th>`
-  ).join('');
-
-  return `<table>
-    <thead>
-      <tr>
-        <th rowspan="2" style="min-width:210px">Material</th>
-        ${branchHeaders1}
-      </tr>
-      <tr>${branchHeaders2}</tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-}
-
-// ── INIT ──────────────────────────────────────────────────────
-async function init() {
-  try {
-    allData = await fetchData();
-    const mats = processData(allData);
-    document.getElementById('tableContainer').innerHTML = renderTable(mats);
-  } catch(e) {
-    document.getElementById('tableContainer').innerHTML = `<div class="state-box"><div class="state-title">Connection error</div><div class="state-sub" style="color:var(--up)">${e.message}</div></div>`;
+    document.getElementById('loadState').style.display='none';
+    document.getElementById('dashContent').style.display='block';
+  }catch(e){
+    document.getElementById('loadState').innerHTML=`<div style="color:var(--up);font-family:var(--mono);font-size:11px">Error loading data: ${e.message}</div>`;
+    console.error(e);
   }
 }
 
-// ── PDF EXPORT ────────────────────────────────────────────────
-async function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
-  const isDark = document.documentElement.dataset.theme === 'dark';
-  const bg = isDark ? [12,16,24] : [247,244,239];
-  const fg = isDark ? [232,226,213] : [26,24,20];
-
-  doc.setFillColor(...bg); doc.rect(0,0,297,210,'F');
-  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...fg);
-  doc.text('Sekelo', 14, 18);
-  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(139,105,20);
-  doc.text('CONSTRUCTION PRICE INTELLIGENCE — ESWATINI', 14, 24);
-  doc.setTextColor(120,110,100); doc.setFontSize(7);
-  doc.text(`Weekly Report · ${new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · Border Premium 20%`, 14, 29);
-  doc.setDrawColor(200,180,140); doc.line(14,32,283,32);
-
-  const mats = processData(allData);
-  const head = ['Material', ...BRANCHES.flatMap(b => [`${b.label} ZAR`, `${b.label} SZL`, `${b.label} WoW`])];
-  const rows = mats.map(m => {
-    const row = [m.label];
-    BRANCHES.forEach(b => {
-      const { latest, prev } = m.byBranch[b.key];
-      const zar = (latest?.available !== false && latest?.price_zar) ? latest.price_zar : null;
-      const szl = zar ? (zar*1.20).toFixed(2) : '—';
-      const d = (zar && prev?.price_zar) ? (((zar-prev.price_zar)/prev.price_zar)*100).toFixed(1)+'%' : '—';
-      row.push(zar ? `R ${parseFloat(zar).toFixed(2)}` : '—', zar ? `E ${szl}` : '—', d);
-    });
-    return row;
-  });
-
-  doc.autoTable({
-    startY: 36,
-    head: [head],
-    body: rows,
-    theme: 'grid',
-    headStyles: { fillColor:[26,24,20], textColor:[139,105,20], fontSize:6, fontStyle:'bold', cellPadding:3 },
-    bodyStyles: { fillColor:bg, textColor:fg, fontSize:7, cellPadding:4 },
-    alternateRowStyles: { fillColor: isDark ? [19,26,36] : [242,238,232] },
-    margin: { left:14, right:14 }
-  });
-
-  const ph = doc.internal.pageSize.height;
-  doc.setFontSize(6); doc.setTextColor(150,140,128);
-  doc.text('Sekelo · Eswatini Construction Intelligence · Prices from South African retailers · For procurement reference only', 14, ph-6);
-  doc.save(`Sekelo_${new Date().toISOString().split('T')[0]}.pdf`);
+function renderLegend(){
+  document.getElementById('branchLegend').innerHTML=BRANCHES.map(b=>`
+    <div class="leg-cell">
+      <div class="leg-branch">${b.label}</div>
+      <div class="leg-src">${b.source}</div>
+      <div class="leg-city">${b.city}</div>
+    </div>
+  `).join('');
 }
+
+function renderDashboard(){
+  const bycat={};
+  products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
+
+  const branchHeaders=BRANCHES.map(b=>`<th class="branch-th" style="min-width:130px">${b.label}</th>`).join('');
+
+  document.getElementById('dashContent').innerHTML=categories.map(cat=>{
+    const prods=bycat[cat.id]||[];
+    if(!prods.length)return'';
+
+    // Count products with any price data
+    const priced=prods.filter(p=>BRANCHES.some(b=>priceMap[p.id]?.[b.key]?.current)).length;
+
+    const rows=prods.map(p=>{
+      const cells=BRANCHES.map(b=>{
+        const data=priceMap[p.id]?.[b.key];
+        if(!data?.current) return`<td class="branch-td"><span class="pc-na">—</span></td>`;
+
+        const cur=data.current;
+        const prev=data.previous;
+
+        // Out of stock
+        if(cur.available===false) return`<td class="branch-td"><span class="pc-oos">Out of Stock</span></td>`;
+
+        const zar=parseFloat(cur.price_zar);
+        const szl=parseFloat(cur.price_szl)||(zar*(1+BORDER));
+
+        // WoW calculation
+        let wowHtml='';
+        if(prev?.price_zar){
+          const pz=parseFloat(prev.price_zar);
+          if(pz>0){
+            const pct=((zar-pz)/pz*100);
+            if(Math.abs(pct)>=0.5){
+              const cls=pct>0?'up':'down';
+              const arrow=pct>0?'↑':'↓';
+              wowHtml=`<div><span class="pc-wow ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span></div>`;
+            } else {
+              wowHtml=`<div><span class="pc-wow flat">→ flat</span></div>`;
+            }
+          }
+        }
+
+        // Normalized price
+        const prod=products.find(x=>x.id===p.id);
+        let normHtml='';
+        if(prod?.normalized_divisor>1&&cur.normalized_price){
+          normHtml=`<div class="pc-norm">R ${parseFloat(cur.normalized_price).toFixed(2)}/${prod.normalized_unit}</div>`;
+        }
+
+        return`<td class="branch-td">
+          <div class="pc-zar">R ${zar.toFixed(2)}</div>
+          <div class="pc-szl">E ${szl.toFixed(2)}</div>
+          ${normHtml}
+          ${wowHtml}
+        </td>`;
+      }).join('');
+
+      return`<tr>
+        <td>
+          <div class="pname">${esc(p.product_name)}</div>
+          <div><span class="upill">${esc(p.unit)}</span></div>
+        </td>
+        ${cells}
+      </tr>`;
+    }).join('');
+
+    return`<div class="catsec" id="cat_${cat.id}">
+      <div class="cathdr" onclick="toggleCat(${cat.id})">
+        <div class="cat-l">
+          <div class="catname">${esc(cat.name)}</div>
+          <div class="catpill ${priced>0&&priced===prods.length?'full':''}">${priced}/${prods.length} priced</div>
+        </div>
+        <div class="cat-r">
+          <div class="cattog" id="ct_${cat.id}">−</div>
+        </div>
+      </div>
+      <div class="catbody" id="cb_${cat.id}">
+        <table class="ptable">
+          <thead><tr>
+            <th style="min-width:220px">Product</th>
+            ${branchHeaders}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let collapsed=new Set();
+function toggleCat(id){
+  const body=document.getElementById(`cb_${id}`);
+  const icon=document.getElementById(`ct_${id}`);
+  if(collapsed.has(id)){collapsed.delete(id);body.classList.remove('collapsed');if(icon)icon.textContent='−';}
+  else{collapsed.add(id);body.classList.add('collapsed');if(icon)icon.textContent='+';}
+}
+
+// THEME
+function getTheme(){return document.documentElement.dataset.theme||'dark';}
+function toggleTheme(){
+  const next=getTheme()==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  localStorage.setItem('sekelo_theme',next);
+  document.getElementById('themeBtn').textContent=next==='dark'?'☀':'☾';
+}
+(function(){
+  const t=localStorage.getItem('sekelo_theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('themeBtn').textContent=t==='dark'?'☀':'☾';
+  });
+})();
+
+// PDF EXPORT
+function exportPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const isDark=false;
+
+  doc.setFillColor(247,244,239);doc.rect(0,0,297,210,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(26,24,20);
+  doc.text('Sekelo',14,16);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(139,105,20);
+  doc.text('CONSTRUCTION MATERIAL PRICE INDEX',14,22);
+  doc.setDrawColor(226,217,204);doc.line(14,25,283,25);
+
+  const dateStr=new Date().toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'});
+  doc.setFontSize(8);doc.setTextColor(107,94,78);
+  doc.text(`Generated: ${dateStr}  ·  SZL includes 20% border premium  ·  For procurement reference only`,14,30);
+
+  let y=35;
+  const bycat={};
+  products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
+
+  categories.forEach(cat=>{
+    const prods=bycat[cat.id]||[];
+    if(!prods.length)return;
+
+    const hasData=prods.some(p=>BRANCHES.some(b=>priceMap[p.id]?.[b.key]?.current));
+    if(!hasData)return;
+
+    if(y>170){doc.addPage();y=20;}
+
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(139,105,20);
+    doc.text(cat.name.toUpperCase(),14,y);
+    y+=3;
+
+    const head=[['Product','Unit',...BRANCHES.map(b=>`${b.label} ZAR`),'']];
+    const body=prods.map(p=>{
+      const row=[p.product_name,p.unit];
+      BRANCHES.forEach(b=>{
+        const d=priceMap[p.id]?.[b.key];
+        if(!d?.current){row.push('—');}
+        else if(d.current.available===false){row.push('Out of Stock');}
+        else{row.push(`R ${parseFloat(d.current.price_zar).toFixed(2)}`);}
+      });
+      row.push('');
+      return row;
+    });
+
+    doc.autoTable({
+      startY:y,head,body,theme:'grid',
+      headStyles:{fillColor:[26,24,20],textColor:[200,165,90],fontSize:7,fontStyle:'bold'},
+      bodyStyles:{fillColor:[247,244,239],textColor:[26,24,20],fontSize:7},
+      alternateRowStyles:{fillColor:[242,238,232]},
+      margin:{left:14,right:14},
+      tableWidth:'auto',
+      columnStyles:{0:{cellWidth:55},1:{cellWidth:20}},
+    });
+    y=doc.lastAutoTable.finalY+6;
+  });
+
+  const ph=doc.internal.pageSize.height;
+  doc.setFontSize(6);doc.setTextColor(200,186,168);
+  doc.text('Sekelo · Eswatini Construction Intelligence · Prices verified biweekly',14,ph-6);
+  doc.save(`Sekelo_Price_Index_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 init();
 </script>
