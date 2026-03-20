@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,262 +9,231 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <style>
-:root {
-  --bg:#F7F4EF;--surface:#FFFFFF;--surface-2:#F2EEE8;--border:#E2D9CC;--border-2:#D0C4B3;
-  --accent:#8B6914;--accent-bg:rgba(139,105,20,0.06);
-  --up:#B83232;--up-bg:rgba(184,50,50,0.06);
-  --down:#2D6B4A;--down-bg:rgba(45,107,74,0.08);
-  --text:#1A1814;--text-2:#6B5E4E;--text-3:#A89880;--text-4:#C8BAA8;
-  --serif:'Cormorant Garamond',Georgia,serif;
-  --sans:'DM Sans',sans-serif;
-  --mono:'JetBrains Mono',monospace;
-  --shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:0 4px 12px rgba(0,0,0,0.08);
-}
-[data-theme="dark"] {
+:root{
   --bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;--border:#1E2C3C;--border-2:#253545;
   --accent:#C8A55A;--accent-bg:rgba(200,165,90,0.08);
   --up:#E05555;--up-bg:rgba(224,85,85,0.08);
   --down:#3DAA6E;--down-bg:rgba(61,170,110,0.08);
   --text:#E8E2D5;--text-2:#9A9080;--text-3:#5A5245;--text-4:#3A342C;
-  --shadow:0 1px 3px rgba(0,0,0,0.3);--shadow-md:0 4px 16px rgba(0,0,0,0.4);
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,0.3);
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-html{font-size:14px;}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;min-height:100vh;transition:background 0.25s,color 0.25s;-webkit-font-smoothing:antialiased;}
+[data-theme="light"]{
+  --bg:#F7F4EF;--surface:#FFFFFF;--surface-2:#F2EEE8;--border:#E2D9CC;--border-2:#D0C4B3;
+  --accent:#8B6914;--accent-bg:rgba(139,105,20,0.06);
+  --up:#B83232;--up-bg:rgba(184,50,50,0.06);
+  --down:#2D6B4A;--down-bg:rgba(45,107,74,0.06);
+  --text:#1A1814;--text-2:#6B5E4E;--text-3:#A89880;--text-4:#C8BAA8;
+  --shadow:0 1px 3px rgba(0,0,0,0.06);
+}
+*{margin:0;padding:0;box-sizing:border-box;}html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;min-height:100vh;transition:background .25s,color .25s;-webkit-font-smoothing:antialiased;}
 
-/* HEADER */
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);transition:background 0.25s,border-color 0.25s;}
-.header-left{display:flex;align-items:center;gap:16px;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
 .logo-wrap{display:flex;align-items:baseline;gap:10px;text-decoration:none;}
-.logo{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--text);letter-spacing:0.5px;}
+.logo{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--text);letter-spacing:.5px;}
 .logo-rule{width:1px;height:14px;background:var(--border-2);align-self:center;}
 .logo-sub{font-family:var(--sans);font-size:11px;font-weight:300;color:var(--text-3);}
-.header-right{display:flex;align-items:center;gap:12px;}
-.nav-link{font-family:var(--sans);font-size:11px;font-weight:400;color:var(--text-3);text-decoration:none;padding:6px 12px;border:1px solid transparent;transition:all 0.2s;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.nav-link{font-family:var(--sans);font-size:11px;color:var(--text-3);text-decoration:none;padding:6px 12px;border:1px solid transparent;transition:all .2s;}
 .nav-link:hover{color:var(--accent);border-color:var(--border);}
 .nav-link.active{color:var(--accent);border-color:var(--accent);background:var(--accent-bg);}
-.theme-toggle{background:none;border:1px solid var(--border);color:var(--text-3);width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.2s;}
-.theme-toggle:hover{border-color:var(--accent);color:var(--accent);}
+.theme-btn{background:none;border:1px solid var(--border);color:var(--text-3);width:32px;height:32px;cursor:pointer;font-size:14px;transition:all .2s;}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-/* STRIP */
-.date-strip{background:var(--surface-2);border-bottom:1px solid var(--border);padding:7px 40px;display:flex;align-items:center;justify-content:space-between;}
-.date-strip-left{font-family:var(--serif);font-size:12px;font-style:italic;color:var(--text-3);}
-.strip-note{font-family:var(--mono);font-size:10px;color:var(--text-4);}
-.strip-note b{color:var(--text-3);font-weight:500;}
+.subhdr{background:var(--surface-2);border-bottom:1px solid var(--border);padding:7px 32px;display:flex;align-items:center;justify-content:space-between;}
+.sub-l{font-family:var(--serif);font-size:12px;font-style:italic;color:var(--text-3);}
+.sub-r{font-family:var(--mono);font-size:9px;color:var(--text-4);}
+.sub-r b{color:var(--text-3);font-weight:500;}
 
-/* MAIN */
-.main{padding:32px 40px;max-width:1100px;}
-.section-label{font-family:var(--sans);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
-.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.main{padding:24px 32px;max-width:1200px;}
+.section-lbl{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.section-lbl::after{content:'';flex:1;height:1px;background:var(--border);}
 
-/* CARDS */
-.card{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px;transition:background 0.25s,border-color 0.25s;opacity:0;animation:fadeIn 0.4s 0.1s forwards;}
-.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+/* META CARD */
+.card{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px;animation:fadeIn .3s forwards;}
+.card-hdr{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .card-title{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);}
-.card-body{padding:20px;}
+.card-body{padding:18px;}
+.pmeta{display:grid;grid-template-columns:1fr 1fr 180px;gap:14px;}
+.flbl{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:5px;}
+input[type="text"],input[type="date"]{background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;font-weight:300;padding:9px 12px;outline:none;transition:border .2s;width:100%;}
+input[type="text"]:focus,input[type="date"]:focus{border-color:var(--accent);}
 
-/* META */
-.project-meta{display:grid;grid-template-columns:1fr 1fr 180px;gap:16px;}
-.f-label{font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;}
-input,select{background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;font-weight:300;padding:9px 12px;outline:none;transition:border 0.2s;width:100%;}
-input:focus,select:focus{border-color:var(--accent);}
-select option{background:var(--surface);}
+/* CATEGORY SECTIONS */
+.catsec{background:var(--surface);border:1px solid var(--border);margin-bottom:8px;}
+.cathdr{padding:11px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s;}
+.cathdr:hover{background:var(--surface-2);}
+.cat-l{display:flex;align-items:center;gap:10px;}
+.catname{font-family:var(--sans);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);}
+.cat-qty-count{font-family:var(--mono);font-size:8px;color:var(--text-3);padding:2px 7px;border:1px solid var(--border-2);}
+.cat-qty-count.has-entries{color:var(--accent);border-color:rgba(200,165,90,.3);}
+.cattog{font-family:var(--mono);font-size:12px;color:var(--text-3);width:20px;text-align:center;}
+.catbody{border-top:1px solid var(--border);overflow-x:auto;}
+.catbody.collapsed{display:none;}
 
-/* QUANTITIES TABLE */
-.qty-table{width:100%;border-collapse:collapse;}
-.qty-table thead tr{border-bottom:2px solid var(--border);}
-.qty-table th{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:8px 16px;text-align:left;white-space:nowrap;}
-.qty-table th.r{text-align:right;}
-.qty-table tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;}
-.qty-table tbody tr:last-child{border-bottom:none;}
-.qty-table tbody tr:hover{background:var(--surface-2);}
-.qty-table td{padding:12px 16px;vertical-align:middle;}
-.qty-table td.r{text-align:right;}
-.mat-name{font-family:var(--sans);font-size:12px;font-weight:400;color:var(--text);}
-.mat-unit{font-family:var(--mono);font-size:9px;color:var(--text-4);margin-top:2px;}
-.qty-input{width:110px;text-align:right;font-family:var(--mono);font-size:12px;}
-
-/* LOCATION PRICE COLUMNS */
-.loc-price{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-2);text-align:right;}
-.loc-price-szl{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);text-align:right;margin-top:2px;}
-.no-price{font-family:var(--sans);font-size:9px;color:var(--text-4);text-align:right;line-height:1.4;}
-
-/* LOCATION HEADER PILL */
-.loc-header{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
-.loc-name{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);}
+/* PRODUCT INPUT TABLE */
+.itable{width:100%;border-collapse:collapse;min-width:700px;}
+.itable th{font-family:var(--sans);font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:7px 14px;text-align:left;border-bottom:1px solid var(--border);}
+.itable th.r{text-align:right;}
+.itable td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.itable tr:last-child td{border-bottom:none;}
+.itable tr:hover td{background:var(--surface-2);}
+.pname{font-family:var(--sans);font-size:12px;font-weight:400;color:var(--text);}
+.upill{display:inline-block;font-family:var(--mono);font-size:8px;color:var(--text-3);border:1px solid var(--border-2);padding:2px 7px;}
+.qty-inp{background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;transition:border .2s;width:110px;text-align:right;}
+.qty-inp:focus{border-color:var(--accent);}
+.qty-inp.has-val{border-color:rgba(200,165,90,.4);color:var(--accent);}
 
 /* ACTIONS */
-.action-bar{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap;}
-.btn-primary{background:var(--text);border:none;color:var(--bg);font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:0.8px;text-transform:uppercase;padding:12px 28px;cursor:pointer;transition:opacity 0.2s;}
-.btn-primary:hover{opacity:0.8;}
-.btn-clear{background:none;border:1px solid var(--border);color:var(--text-3);font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:0.5px;padding:11px 20px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+.action-bar{display:flex;align-items:center;gap:10px;margin:16px 0;flex-wrap:wrap;}
+.btn-primary{background:var(--text);border:none;color:var(--bg);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:12px 28px;cursor:pointer;transition:opacity .2s;}
+.btn-primary:hover{opacity:.8;}
+.btn-clear{background:none;border:1px solid var(--border);color:var(--text-3);font-family:var(--sans);font-size:10px;font-weight:400;padding:11px 18px;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
 .btn-clear:hover{border-color:var(--up);color:var(--up);}
-.btn-export{background:none;border:1px solid var(--accent);color:var(--accent);font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:0.5px;padding:11px 20px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;display:none;}
+.btn-export{background:none;border:1px solid var(--accent);color:var(--accent);font-family:var(--sans);font-size:10px;font-weight:500;padding:11px 18px;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;display:none;}
 .btn-export:hover{background:var(--accent);color:var(--surface);}
 
 /* RESULTS */
-.results-card{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);margin-top:24px;display:none;}
-.results-card.show{display:block;animation:fadeIn 0.4s forwards;}
+.results-card{background:var(--surface);border:1px solid var(--border);margin-top:20px;display:none;}
+.results-card.show{display:block;animation:fadeIn .4s forwards;}
 
-/* WINNER BANNER */
-.winner-banner{padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);background:var(--down-bg);}
-.winner-icon{font-size:18px;}
+.winner-bar{padding:14px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--down-bg);}
+.winner-icon{font-size:16px;}
 .winner-text{font-family:var(--sans);font-size:13px;font-weight:400;color:var(--down);}
 .winner-text b{font-weight:600;}
-.winner-saving{font-family:var(--mono);font-size:11px;color:var(--down);opacity:0.8;margin-top:2px;}
+.winner-saving{font-family:var(--mono);font-size:11px;color:var(--down);opacity:.8;margin-top:2px;}
 
-/* LOCATION COMPARISON GRID */
-.loc-comparison{display:grid;gap:1px;background:var(--border);}
-.loc-cell{background:var(--surface);padding:18px 24px;position:relative;}
+.loc-grid{display:grid;gap:1px;background:var(--border);}
+.loc-cell{background:var(--surface);padding:16px 20px;}
 .loc-cell.winner{background:var(--down-bg);}
-.loc-cell.winner .loc-total-value{color:var(--down);}
-.loc-cell-label{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
-.winner-tag{font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;background:var(--down);color:white;}
-.loc-total-value{font-family:var(--serif);font-size:26px;font-weight:500;color:var(--text);}
-.loc-total-szl{font-family:var(--mono);font-size:18px;font-weight:400;color:var(--text-3);margin-top:6px;}
-.loc-total-items{font-family:var(--sans);font-size:10px;color:var(--text-4);margin-top:4px;}
+.loc-cell.winner .loc-total{color:var(--down);}
+.loc-label{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.win-tag{font-family:var(--mono);font-size:8px;padding:2px 6px;background:var(--down);color:white;text-transform:uppercase;letter-spacing:.5px;}
+.loc-total{font-family:var(--serif);font-size:24px;font-weight:500;color:var(--text);}
+.loc-szl{font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:3px;}
+.loc-items{font-family:var(--sans);font-size:9px;color:var(--text-4);margin-top:3px;}
 
 /* BREAKDOWN */
-.breakdown-wrap{padding:20px;}
+.breakdown-wrap{padding:18px;}
 .breakdown-title{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:12px;}
-.breakdown-table{width:100%;border-collapse:collapse;}
-.breakdown-table th{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
-.breakdown-table th.r{text-align:right;}
-.breakdown-table td{font-family:var(--sans);font-size:11px;font-weight:300;color:var(--text-2);padding:10px 12px;border-bottom:1px solid var(--border);}
-.breakdown-table td.name{font-weight:400;color:var(--text);}
-.breakdown-table td.mono{font-family:var(--mono);font-size:11px;text-align:right;}
-.breakdown-table td.best{font-family:var(--mono);font-size:11px;text-align:right;color:var(--down);font-weight:500;}
-.breakdown-table td.worst{font-family:var(--mono);font-size:11px;text-align:right;color:var(--text-3);}
-.breakdown-table tr:last-child td{border-bottom:none;}
-.breakdown-table tr:hover td{background:var(--surface-2);}
-.total-row td{border-top:2px solid var(--border) !important;border-bottom:none !important;font-weight:500;}
-.best-badge{display:inline-block;font-family:var(--mono);font-size:8px;letter-spacing:0.5px;padding:1px 5px;background:var(--down-bg);color:var(--down);border:1px solid rgba(45,107,74,0.2);margin-left:4px;vertical-align:middle;}
+
+/* Category subtotal row */
+.cat-subtotal{background:var(--surface-2) !important;}
+.cat-subtotal td{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text-2);border-top:1px solid var(--border) !important;border-bottom:2px solid var(--border) !important;}
+
+.btable{width:100%;border-collapse:collapse;overflow-x:auto;display:block;}
+.btable th{font-family:var(--sans);font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:7px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.btable th.r{text-align:right;}
+.btable td{font-family:var(--sans);font-size:11px;font-weight:300;color:var(--text-2);padding:9px 12px;border-bottom:1px solid var(--border);}
+.btable td.name{font-weight:400;color:var(--text);}
+.btable td.cat-hdr-row{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--accent);background:var(--surface-2);padding:7px 12px;}
+.btable td.mono{font-family:var(--mono);font-size:11px;text-align:right;}
+.btable td.best{font-family:var(--mono);font-size:11px;text-align:right;color:var(--down);font-weight:500;}
+.btable tr:hover td{background:var(--surface-2);}
+.btable tr:last-child td{border-bottom:none;}
+.best-badge{display:inline-block;font-family:var(--mono);font-size:7px;padding:1px 5px;background:var(--down-bg);color:var(--down);border:1px solid rgba(61,170,110,.2);margin-left:4px;vertical-align:middle;}
 
 /* DISCLAIMER */
-.disclaimer{margin-top:16px;padding:14px 20px;background:var(--surface-2);border:1px solid var(--border);}
-.disclaimer-text{font-family:var(--sans);font-size:10px;font-weight:300;color:var(--text-3);line-height:1.6;}
-.disclaimer-text b{color:var(--text-2);font-weight:400;}
+.disclaimer{margin-top:14px;padding:12px 18px;background:var(--surface-2);border:1px solid var(--border);font-family:var(--sans);font-size:10px;color:var(--text-3);line-height:1.6;}
+.disclaimer b{color:var(--text-2);font-weight:400;}
 
 /* LOADING */
-.loading-state{padding:40px;text-align:center;}
-.loading-dots{display:inline-flex;gap:5px;margin-bottom:10px;}
-.loading-dots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite;}
-.loading-dots span:nth-child(2){animation-delay:0.2s;}
-.loading-dots span:nth-child(3){animation-delay:0.4s;}
-.loading-sub{font-family:var(--sans);font-size:11px;color:var(--text-4);}
+.loading{padding:60px;text-align:center;}
+.ldots{display:inline-flex;gap:5px;margin-bottom:10px;}
+.ldots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite;}
+.ldots span:nth-child(2){animation-delay:.2s;}.ldots span:nth-child(3){animation-delay:.4s;}
+.ltext{font-family:var(--mono);font-size:10px;color:var(--text-4);}
 
-/* FOOTER */
-.footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;margin-top:32px;flex-wrap:wrap;gap:8px;}
-.footer-text{font-family:var(--sans);font-size:10px;font-weight:300;color:var(--text-4);}
+.footer{padding:18px 32px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;margin-top:32px;flex-wrap:wrap;gap:8px;}
+.footer-text{font-family:var(--sans);font-size:10px;color:var(--text-4);}
 .footer-text b{color:var(--text-3);font-weight:400;}
 
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-@keyframes blink{0%,80%,100%{opacity:0.15}40%{opacity:1}}
-::-webkit-scrollbar{width:3px;height:3px;}
-::-webkit-scrollbar-thumb{background:var(--border-2);}
-::-webkit-scrollbar-track{background:transparent;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
+::-webkit-scrollbar{width:3px;height:3px;}::-webkit-scrollbar-thumb{background:var(--border-2);}
 
 @media(max-width:768px){
-  .header{padding:0 16px;}
+  .header,.subhdr,.main,.footer{padding-left:16px;padding-right:16px;}
   .logo-sub,.nav-link{display:none;}
-  .main{padding:20px 16px;}
-  .date-strip{padding:7px 16px;}
-  .footer{padding:16px;}
-  .project-meta{grid-template-columns:1fr;}
+  .pmeta{grid-template-columns:1fr;}
   .action-bar{flex-direction:column;align-items:stretch;}
   .btn-primary,.btn-clear,.btn-export{text-align:center;}
-  .loc-comparison{grid-template-columns:1fr !important;}
-  .qty-table{font-size:11px;}
-  .qty-input{width:80px;}
+  .loc-grid{grid-template-columns:1fr !important;}
 }
 </style>
 </head>
 <body>
 
 <header class="header">
-  <div class="header-left">
-    <a href="/" class="logo-wrap">
-      <div class="logo">Sekelo</div>
-      <div class="logo-rule"></div>
-      <div class="logo-sub">Construction Price Intelligence</div>
-    </a>
-  </div>
-  <div class="header-right">
+  <a href="/" class="logo-wrap">
+    <div class="logo">Sekelo</div><div class="logo-rule"></div>
+    <div class="logo-sub">Construction Price Intelligence</div>
+  </a>
+  <div class="hdr-right">
     <a href="/" class="nav-link">Price Index</a>
     <a href="boq.html" class="nav-link active">BoQ Calculator</a>
-    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☾</button>
+    <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀</button>
   </div>
 </header>
 
-<div class="date-strip">
-  <div class="date-strip-left">Bill of Quantities — Multi-Location Cost Comparison</div>
-  <div class="strip-note">All locations calculated simultaneously · <b>SZL includes 20% border premium</b></div>
+<div class="subhdr">
+  <div class="sub-l">Bill of Quantities — Multi-Location Cost Comparison</div>
+  <div class="sub-r">All branches calculated simultaneously · <b>SZL includes 20% border premium</b></div>
 </div>
 
 <main class="main">
-  <div class="section-label">Project Details</div>
+  <div class="section-lbl">Project Details</div>
   <div class="card">
-    <div class="card-header"><div class="card-title">Project Information</div></div>
+    <div class="card-hdr"><div class="card-title">Project Information</div></div>
     <div class="card-body">
-      <div class="project-meta">
-        <div><div class="f-label">Project Name</div><input type="text" id="projectName" placeholder="e.g. Residential House — Mbabane"></div>
-        <div><div class="f-label">Client / Contractor</div><input type="text" id="clientName" placeholder="e.g. ABC Construction"></div>
-        <div><div class="f-label">Estimate Date</div><input type="date" id="estimateDate"></div>
+      <div class="pmeta">
+        <div><div class="flbl">Project Name</div><input type="text" id="projectName" placeholder="e.g. Residential House — Mbabane"></div>
+        <div><div class="flbl">Client / Contractor</div><input type="text" id="clientName" placeholder="e.g. ABC Construction"></div>
+        <div><div class="flbl">Estimate Date</div><input type="date" id="estimateDate"></div>
       </div>
     </div>
   </div>
 
-  <div class="section-label">Material Quantities</div>
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">Enter Quantities — All Locations Compared Automatically</div>
-    </div>
-    <div class="card-body" style="padding:0;overflow-x:auto;">
-      <div id="materialsBody">
-        <div class="loading-state">
-          <div class="loading-dots"><span></span><span></span><span></span></div>
-          <div class="loading-sub">Loading prices across all locations</div>
-        </div>
-      </div>
-    </div>
+  <div class="section-lbl">Material Quantities</div>
+
+  <div id="loadState" class="loading">
+    <div class="ldots"><span></span><span></span><span></span></div>
+    <div class="ltext">Loading products and current prices</div>
   </div>
+
+  <div id="boqForm" style="display:none"></div>
 
   <div class="action-bar">
     <button class="btn-primary" onclick="calculate()">Compare All Locations</button>
-    <button class="btn-clear" onclick="clearAll()">Clear</button>
+    <button class="btn-clear" onclick="clearAll()">Clear Quantities</button>
     <button class="btn-export" id="exportBtn" onclick="exportPDF()">Export PDF</button>
   </div>
 
-  <!-- RESULTS -->
   <div class="results-card" id="resultsCard">
-    <div class="card-header">
+    <div class="card-hdr">
       <div class="card-title">Location Cost Comparison</div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--text-3)" id="resultsMeta">—</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text-3)" id="resultsMeta">—</div>
     </div>
 
-    <div class="winner-banner" id="winnerBanner">
+    <div class="winner-bar" id="winnerBar">
       <span class="winner-icon">↓</span>
       <div>
         <div class="winner-text" id="winnerText">—</div>
-        <div class="winner-saving" id="winnerSaving">—</div>
+        <div class="winner-saving" id="winnerSaving"></div>
       </div>
     </div>
 
-    <div class="loc-comparison" id="locComparison" style="grid-template-columns:repeat(2,1fr)"></div>
+    <div class="loc-grid" id="locGrid" style="grid-template-columns:repeat(2,1fr)"></div>
 
     <div class="breakdown-wrap">
       <div class="breakdown-title">Itemised Breakdown — All Locations</div>
-      <div style="overflow-x:auto">
-        <table class="breakdown-table" id="breakdownTable"></table>
-      </div>
+      <div style="overflow-x:auto"><table class="btable" id="breakdownTable"></table></div>
     </div>
   </div>
 
   <div class="disclaimer">
-    <div class="disclaimer-text">
-      <b>Disclaimer:</b> This estimate is based on current retail prices tracked by Sekelo and is intended as a procurement reference only. Prices are verified biweekly and subject to change. This estimate covers tracked materials only and does not include labour, plant hire, professional fees, or materials not currently in the Sekelo index. Always verify prices directly with suppliers before committing to a contract.
-    </div>
+    <b>Disclaimer:</b> This estimate is based on current retail prices tracked by Sekelo and is intended as a procurement reference only. Prices are verified biweekly and subject to change. This estimate does not include labour, plant hire, professional fees, or materials not currently tracked. Always verify prices directly with suppliers before committing to a contract.
   </div>
 </main>
 
@@ -274,245 +243,262 @@ select option{background:var(--surface);}
 </footer>
 
 <script>
-const SUPABASE_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
+const SB_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdX8';
 const BORDER = 0.20;
 
-const UNITS = {
-  cement:'bags (50kg)', rebar:'lengths (6m)', timber:'lengths (6m)',
-  bricks:'units', bricks_maxi:'units', concrete_mix:'bags (40kg)'
-};
+const BRANCHES = [
+  {key:'Southgate | Cashbuild',             label:'Southgate',       source:'Cashbuild'},
+  {key:'Nelspruit Plaza | Cashbuild',       label:'Nelspruit Plaza', source:'Cashbuild'},
+  {key:'Johannesburg | Builders Warehouse', label:'Johannesburg',    source:'Builders Warehouse'},
+  {key:'Mbombela | Builders Warehouse',     label:'Mbombela',        source:'Builders Warehouse'},
+];
 
-// { materialId: { label, unit, prices: { Joburg: price, Nelspruit: price, ... } } }
-let priceData = {};
-let locations = []; // ordered list of all cities in db
-let lastResult = null;
+let categories=[], products=[], currentPrices={}, quantities={}, lastResult=null, collapsedCats=new Set();
+// currentPrices[productId][branchKey] = price_zar (or null if OOS/unavailable)
 
-// Theme
-function getTheme(){ return localStorage.getItem('sekelo_theme')||'light'; }
-function toggleTheme(){
-  const next = document.documentElement.dataset.theme==='dark'?'light':'dark';
-  document.documentElement.dataset.theme=next;
-  localStorage.setItem('sekelo_theme',next);
-  document.getElementById('themeBtn').textContent=next==='dark'?'☀':'☾';
-}
-(function(){
-  const t=getTheme();
-  document.documentElement.dataset.theme=t;
-  document.addEventListener('DOMContentLoaded',()=>{
-    document.getElementById('themeBtn').textContent=t==='dark'?'☀':'☾';
-    document.getElementById('estimateDate').value=new Date().toISOString().split('T')[0];
-  });
-})();
-
-// Fetch & process
-async function fetchPrices(){
-  const r=await fetch(`${SUPABASE_URL}/rest/v1/prices?order=timestamp.desc&limit=1000&select=*`,{
-    headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}
-  });
-  if(!r.ok) throw new Error('Failed to load');
+async function get(path){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
+  if(!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }
 
-function buildPriceMap(rows){
-  const map={};
-  const citiesFound=new Set();
-  rows.forEach(r=>{
-    if(!r.material_id||r.available===false||!r.price_zar) return;
-    if(!map[r.material_id]) map[r.material_id]={label:r.material,prices:{}};
-    if(!map[r.material_id].prices[r.city]) {
-      map[r.material_id].prices[r.city]=parseFloat(r.price_zar);
-      citiesFound.add(r.city);
-    }
-  });
-  // Consistent city order
-  const preferred=['Joburg','Nelspruit'];
-  const ordered=[...preferred.filter(c=>citiesFound.has(c)),...[...citiesFound].filter(c=>!preferred.includes(c))];
-  return {map, locations:ordered};
+async function init(){
+  try{
+    [categories,products]=await Promise.all([
+      get('categories?select=*&order=display_order&active=eq.true'),
+      get('products?select=*&order=display_order&active=eq.true'),
+    ]);
+    const prices=await get('prices?select=product_id,branch,price_zar,available&product_id=not.is.null&order=timestamp.desc&limit=400');
+
+    // Build current price map — latest per product+branch
+    prices.forEach(p=>{
+      if(!p.product_id)return;
+      if(!currentPrices[p.product_id])currentPrices[p.product_id]={};
+      if(!(p.branch in currentPrices[p.product_id])){
+        currentPrices[p.product_id][p.branch]=p.available===false?null:parseFloat(p.price_zar);
+      }
+    });
+
+    document.getElementById('estimateDate').value=new Date().toISOString().split('T')[0];
+    renderBoQ();
+    document.getElementById('loadState').style.display='none';
+    document.getElementById('boqForm').style.display='block';
+  }catch(e){
+    document.getElementById('loadState').innerHTML=`<div style="color:var(--up);font-family:var(--mono);font-size:11px">Error: ${e.message}</div>`;
+    console.error(e);
+  }
 }
 
-const CITY_LABELS={
-  Joburg:'Johannesburg — Southgate',
-  Nelspruit:'Nelspruit Plaza'
-};
-function cityLabel(c){ return CITY_LABELS[c]||c; }
+function renderBoQ(){
+  const bycat={};
+  products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
 
-function renderMaterials(){
-  const mats=Object.keys(priceData);
-  if(!mats.length){
-    document.getElementById('materialsBody').innerHTML=`<div style="padding:40px;text-align:center;font-family:var(--serif);font-size:16px;font-style:italic;color:var(--text-4)">No price data available. Enter prices via the admin panel first.</div>`;
-    return;
-  }
+  document.getElementById('boqForm').innerHTML=categories.map(cat=>{
+    const prods=bycat[cat.id]||[];
+    if(!prods.length)return'';
+    const col=collapsedCats.has(cat.id);
 
-  // Build location header columns
-  const locHeaders=locations.map(loc=>`
-    <th class="r">
-      <div class="loc-header">
-        <div class="loc-name">${cityLabel(loc)}</div>
-        <div style="font-family:var(--mono);font-size:8px;color:var(--text-4);margin-top:1px">ZAR / SZL</div>
-      </div>
-    </th>`).join('');
-
-  const rows=mats.map(id=>{
-    const mat=priceData[id];
-    const unit=UNITS[id]||'units';
-    const locCols=locations.map(loc=>{
-      const p=mat.prices[loc];
-      return `<td class="r">
-        ${p
-          ? `<div class="loc-price">R ${p.toFixed(2)}</div>
-             <div class="loc-price-szl">E ${(p*(1+BORDER)).toFixed(2)}</div>`
-          : `<div class="no-price">Out of Stock</div>`}
-      </td>`;
+    const rows=prods.map(p=>{
+      const qty=quantities[p.id]||'';
+      const hasVal=!!qty;
+      return`<tr>
+        <td><div class="pname">${esc(p.product_name)}</div></td>
+        <td><span class="upill">${esc(p.unit)}</span></td>
+        <td style="text-align:right">
+          <input type="number" class="qty-inp ${hasVal?'has-val':''}" id="qty_${p.id}"
+            min="0" step="1" placeholder="0" value="${qty}"
+            oninput="setQty(${p.id},this.value)">
+        </td>
+      </tr>`;
     }).join('');
 
-    return `<tr>
-      <td>
-        <div class="mat-name">${mat.label}</div>
-        <div class="mat-unit">per ${unit}</div>
-      </td>
-      <td class="r">
-        <input type="number" class="qty-input" id="qty_${id}" min="0" step="1" placeholder="0">
-      </td>
-      ${locCols}
-    </tr>`;
-  }).join('');
+    const entered=prods.filter(p=>quantities[p.id]).length;
 
-  document.getElementById('materialsBody').innerHTML=`
-    <table class="qty-table">
-      <thead><tr>
-        <th style="min-width:200px">Material</th>
-        <th class="r" style="min-width:110px">Quantity</th>
-        ${locHeaders}
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+    return`<div class="catsec">
+      <div class="cathdr" onclick="toggleCat(${cat.id})">
+        <div class="cat-l">
+          <div class="catname">${esc(cat.name)}</div>
+          <div class="cat-qty-count ${entered>0?'has-entries':''}">${entered>0?entered+' entered':'—'}</div>
+        </div>
+        <div class="cattog" id="ct_${cat.id}">${col?'+':'−'}</div>
+      </div>
+      <div class="catbody ${col?'collapsed':''}" id="cb_${cat.id}">
+        <table class="itable">
+          <thead><tr>
+            <th style="min-width:240px">Product</th>
+            <th style="min-width:110px">Unit</th>
+            <th class="r" style="min-width:120px">Quantity</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setQty(pid,val){
+  quantities[pid]=val;
+  const el=document.getElementById(`qty_${pid}`);
+  if(el)el.classList.toggle('has-val',!!val);
+  updateCatCounts();
+}
+
+function updateCatCounts(){
+  const bycat={};
+  products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
+  categories.forEach(cat=>{
+    const prods=bycat[cat.id]||[];
+    const entered=prods.filter(p=>quantities[p.id]).length;
+    const el=document.querySelector(`[id="cb_${cat.id}"]`)?.parentElement?.querySelector('.cat-qty-count');
+    if(el){el.textContent=entered>0?entered+' entered':'—';el.classList.toggle('has-entries',entered>0);}
+  });
+}
+
+function toggleCat(id){
+  const body=document.getElementById(`cb_${id}`);
+  const icon=document.getElementById(`ct_${id}`);
+  if(collapsedCats.has(id)){collapsedCats.delete(id);if(body)body.classList.remove('collapsed');if(icon)icon.textContent='−';}
+  else{collapsedCats.add(id);if(body)body.classList.add('collapsed');if(icon)icon.textContent='+';}
 }
 
 function calculate(){
-  const mats=Object.keys(priceData);
-  const lineItems=[];
-  let hasAny=false;
+  const bycat={};
+  products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
 
-  mats.forEach(id=>{
-    const qty=parseFloat(document.getElementById(`qty_${id}`)?.value)||0;
-    if(qty<=0) return;
-    const mat=priceData[id];
-    const unit=UNITS[id]||'units';
-    const locTotals={};
-    locations.forEach(loc=>{
-      const p=mat.prices[loc];
-      locTotals[loc]=p?parseFloat((qty*p).toFixed(2)):null;
+  // Build line items per category
+  const catLineItems={}; // catId → [{prod, qty, locTotals}]
+  let totalLineItems=0;
+
+  categories.forEach(cat=>{
+    const prods=bycat[cat.id]||[];
+    const lines=[];
+    prods.forEach(p=>{
+      const qty=parseFloat(quantities[p.id])||0;
+      if(qty<=0)return;
+      const locTotals={};
+      BRANCHES.forEach(b=>{
+        const pr=currentPrices[p.id]?.[b.key];
+        locTotals[b.key]=pr!=null?parseFloat((qty*pr).toFixed(2)):null;
+      });
+      lines.push({prod:p,qty,locTotals});
     });
-    lineItems.push({id,label:mat.label,qty,unit,locTotals,unitPrices:mat.prices});
-    hasAny=true;
+    if(lines.length){catLineItems[cat.id]=lines;totalLineItems+=lines.length;}
   });
 
-  if(!hasAny){ alert('Please enter at least one quantity to calculate.'); return; }
+  if(!totalLineItems){alert('Please enter at least one quantity.');return;}
 
-  // Grand totals per location
+  // Grand totals per branch
   const grandTotals={};
-  locations.forEach(loc=>{
-    let total=0; let complete=true;
-    lineItems.forEach(item=>{
-      if(item.locTotals[loc]!==null) total+=item.locTotals[loc];
-      else complete=false;
+  BRANCHES.forEach(b=>{
+    let total=0,complete=true;
+    Object.values(catLineItems).forEach(lines=>{
+      lines.forEach(item=>{
+        if(item.locTotals[b.key]!==null)total+=item.locTotals[b.key];
+        else complete=false;
+      });
     });
-    grandTotals[loc]={total:parseFloat(total.toFixed(2)),complete};
+    grandTotals[b.key]={total:parseFloat(total.toFixed(2)),complete};
   });
 
-  // Find cheapest location (only among complete ones)
-  const completeLocs=locations.filter(l=>grandTotals[l].complete);
-  let cheapestLoc=null;
+  // Category subtotals per branch
+  const catTotals={}; // catId → {branchKey → total}
+  Object.entries(catLineItems).forEach(([catId,lines])=>{
+    catTotals[catId]={};
+    BRANCHES.forEach(b=>{
+      let t=0;
+      lines.forEach(item=>{if(item.locTotals[b.key]!==null)t+=item.locTotals[b.key];});
+      catTotals[catId][b.key]=parseFloat(t.toFixed(2));
+    });
+  });
+
+  const completeLocs=BRANCHES.filter(b=>grandTotals[b.key].complete);
+  let cheapest=null,mostExp=null;
   if(completeLocs.length>0){
-    cheapestLoc=completeLocs.reduce((a,b)=>grandTotals[a].total<=grandTotals[b].total?a:b);
-  }
-  // Also find most expensive for saving calc
-  let mostExpensiveLoc=null;
-  if(completeLocs.length>1){
-    mostExpensiveLoc=completeLocs.reduce((a,b)=>grandTotals[a].total>=grandTotals[b].total?a:b);
+    cheapest=completeLocs.reduce((a,b)=>grandTotals[a.key].total<=grandTotals[b.key].total?a:b);
+    if(completeLocs.length>1)mostExp=completeLocs.reduce((a,b)=>grandTotals[a.key].total>=grandTotals[b.key].total?a:b);
   }
 
-  lastResult={lineItems,grandTotals,cheapestLoc,mostExpensiveLoc,locations};
+  lastResult={catLineItems,grandTotals,catTotals,cheapest,mostExp};
 
-  // Meta
   const project=document.getElementById('projectName').value||'Unnamed Project';
   const client=document.getElementById('clientName').value||'—';
   const date=document.getElementById('estimateDate').value
     ?new Date(document.getElementById('estimateDate').value).toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'})
     :new Date().toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'});
+
   document.getElementById('resultsMeta').textContent=`${project} · ${client} · ${date}`;
 
-  // Winner banner
-  if(cheapestLoc){
-    document.getElementById('winnerText').innerHTML=`<b>${cityLabel(cheapestLoc)}</b> is the most cost-effective source for this estimate`;
-    if(mostExpensiveLoc && mostExpensiveLoc!==cheapestLoc){
-      const saving=grandTotals[mostExpensiveLoc].total-grandTotals[cheapestLoc].total;
-      document.getElementById('winnerSaving').textContent=`Saves R ${saving.toFixed(2)} vs ${cityLabel(mostExpensiveLoc)}`;
-    } else {
-      document.getElementById('winnerSaving').textContent='';
-    }
+  // Winner bar
+  if(cheapest){
+    document.getElementById('winnerText').innerHTML=`<b>${cheapest.label}</b> (${cheapest.source}) is the most cost-effective source`;
+    if(mostExp&&mostExp.key!==cheapest.key){
+      const saving=grandTotals[mostExp.key].total-grandTotals[cheapest.key].total;
+      document.getElementById('winnerSaving').textContent=`Saves R ${saving.toFixed(2)} vs ${mostExp.label}`;
+    } else document.getElementById('winnerSaving').textContent='';
   }
 
-  // Location comparison cells
-  document.getElementById('locComparison').style.gridTemplateColumns=`repeat(${Math.min(locations.length,3)},1fr)`;
-  document.getElementById('locComparison').innerHTML=locations.map(loc=>{
-    const {total,complete}=grandTotals[loc];
-    const isWinner=loc===cheapestLoc;
-    const szl=(total*(1+BORDER)).toFixed(2);
-    return `<div class="loc-cell ${isWinner?'winner':''}">
-      <div class="loc-cell-label">
-        ${cityLabel(loc)}
-        ${isWinner?'<span class="winner-tag">Cheapest</span>':''}
-        ${!complete?'<span style="font-family:var(--mono);font-size:8px;color:var(--text-4);margin-left:4px">Partial</span>':''}
+  // Location grid
+  document.getElementById('locGrid').style.gridTemplateColumns=`repeat(${Math.min(BRANCHES.length,4)},1fr)`;
+  document.getElementById('locGrid').innerHTML=BRANCHES.map(b=>{
+    const{total,complete}=grandTotals[b.key];
+    const isWin=cheapest&&b.key===cheapest.key;
+    const szl=(total*(1+BORDER));
+    return`<div class="loc-cell ${isWin?'winner':''}">
+      <div class="loc-label">
+        ${b.label} <span style="font-size:8px;color:var(--text-3)">${b.source}</span>
+        ${isWin?'<span class="win-tag">Cheapest</span>':''}
+        ${!complete?'<span style="font-family:var(--mono);font-size:8px;color:var(--text-4)">Partial</span>':''}
       </div>
-      <div class="loc-total-value">R ${total.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-      <div class="loc-total-szl">E ${parseFloat(szl).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})} SZL</div>
-      <div class="loc-total-items">${lineItems.length} material${lineItems.length!==1?'s':''} · ${lineItems.reduce((s,i)=>s+i.qty,0)} units total</div>
+      <div class="loc-total">R ${total.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div class="loc-szl">E ${szl.toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2})} SZL</div>
+      <div class="loc-items">${totalLineItems} item${totalLineItems!==1?'s':''}</div>
     </div>`;
   }).join('');
 
-  // Breakdown table — dynamic location columns
-  const locTh=locations.map(loc=>`<th class="r">${cityLabel(loc).split('—')[0].trim()}</th>`).join('');
+  // Breakdown table with category grouping and subtotals
+  const branchTh=BRANCHES.map(b=>`<th class="r">${b.label.split(' ')[0]}</th>`).join('');
+  let bodyHtml='';
 
-  const breakdownRows=lineItems.map(item=>{
-    // Find cheapest loc for this line item
-    const availLocs=locations.filter(l=>item.locTotals[l]!==null);
-    const cheapestForItem=availLocs.length>0?availLocs.reduce((a,b)=>item.locTotals[a]<=item.locTotals[b]?a:b):null;
+  Object.entries(catLineItems).forEach(([catId,lines])=>{
+    const cat=categories.find(c=>c.id===parseInt(catId));
+    if(!cat)return;
 
-    const locCols=locations.map(loc=>{
-      const val=item.locTotals[loc];
-      if(val===null) return `<td class="mono" style="color:var(--text-4);font-size:9px">Out of Stock</td>`;
-      const isBest=loc===cheapestForItem&&availLocs.length>1;
-      return `<td class="${isBest?'best':'mono'}">R ${val.toFixed(2)}${isBest?'<span class="best-badge">Best</span>':''}</td>`;
+    // Category header row
+    bodyHtml+=`<tr><td class="cat-hdr-row" colspan="${2+BRANCHES.length}">${cat.name}</td></tr>`;
+
+    lines.forEach(item=>{
+      const availLocs=BRANCHES.filter(b=>item.locTotals[b.key]!==null);
+      const cheapestItem=availLocs.length>0?availLocs.reduce((a,b)=>item.locTotals[a.key]<=item.locTotals[b.key]?a:b):null;
+      const locCols=BRANCHES.map(b=>{
+        const val=item.locTotals[b.key];
+        if(val===null)return`<td class="mono" style="color:var(--text-4)">—</td>`;
+        const isBest=cheapestItem&&b.key===cheapestItem.key&&availLocs.length>1;
+        return`<td class="${isBest?'best':'mono'}">R ${val.toFixed(2)}${isBest?'<span class="best-badge">Best</span>':''}</td>`;
+      }).join('');
+      bodyHtml+=`<tr><td class="name">${esc(item.prod.product_name)}</td><td style="font-family:var(--mono);font-size:10px;color:var(--text-3)">${item.qty} ${item.prod.unit}</td>${locCols}</tr>`;
+    });
+
+    // Category subtotal row
+    const subCols=BRANCHES.map(b=>{
+      const t=catTotals[catId][b.key];
+      const isWin=cheapest&&b.key===cheapest.key;
+      return`<td class="cat-subtotal" style="font-family:var(--mono);font-size:10px;${isWin?'color:var(--down);font-weight:600':''}">R ${t.toFixed(2)}</td>`;
     }).join('');
+    bodyHtml+=`<tr><td class="cat-subtotal name" colspan="2" style="font-family:var(--sans);font-size:9px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">${cat.name} Subtotal</td>${subCols}</tr>`;
+  });
 
-    return `<tr>
-      <td class="name">${item.label}</td>
-      <td style="font-family:var(--mono);font-size:11px;color:var(--text-3)">${item.qty} ${item.unit}</td>
-      ${locCols}
-    </tr>`;
+  // Grand total row
+  const totalCols=BRANCHES.map(b=>{
+    const{total,complete}=grandTotals[b.key];
+    const isWin=cheapest&&b.key===cheapest.key;
+    return`<td style="font-family:var(--mono);font-size:12px;font-weight:500;border-top:2px solid var(--border);${isWin?'color:var(--down)':''}">R ${total.toFixed(2)}${!complete?' *':''}</td>`;
   }).join('');
-
-  const totalCols=locations.map(loc=>{
-    const {total,complete}=grandTotals[loc];
-    const isWin=loc===cheapestLoc;
-    return `<td class="mono" style="${isWin?'color:var(--down);font-weight:600':''}">R ${total.toFixed(2)}${!complete?' *':''}</td>`;
-  }).join('');
+  bodyHtml+=`<tr><td colspan="2" style="font-family:var(--sans);font-size:10px;font-weight:500;color:var(--text);border-top:2px solid var(--border)">Grand Total</td>${totalCols}</tr>`;
 
   document.getElementById('breakdownTable').innerHTML=`
-    <thead><tr>
-      <th style="min-width:180px">Material</th>
-      <th style="min-width:100px">Quantity</th>
-      ${locTh}
-    </tr></thead>
-    <tbody>
-      ${breakdownRows}
-      <tr class="total-row">
-        <td class="name" colspan="2">Total Estimate</td>
-        ${totalCols}
-      </tr>
-    </tbody>`;
+    <thead><tr><th style="min-width:200px">Product</th><th style="min-width:90px">Qty</th>${branchTh}</tr></thead>
+    <tbody>${bodyHtml}</tbody>`;
 
   const rc=document.getElementById('resultsCard');
   rc.classList.add('show');
@@ -521,20 +507,22 @@ function calculate(){
 }
 
 function clearAll(){
-  Object.keys(priceData).forEach(id=>{
-    const el=document.getElementById(`qty_${id}`);
-    if(el) el.value='';
+  quantities={};
+  products.forEach(p=>{
+    const el=document.getElementById(`qty_${p.id}`);
+    if(el){el.value='';el.classList.remove('has-val');}
   });
   document.getElementById('resultsCard').classList.remove('show');
   document.getElementById('exportBtn').style.display='none';
   document.getElementById('projectName').value='';
   document.getElementById('clientName').value='';
   lastResult=null;
+  updateCatCounts();
 }
 
-async function exportPDF(){
-  if(!lastResult) return;
-  const {jsPDF}=window.jspdf;
+function exportPDF(){
+  if(!lastResult)return;
+  const{jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
 
   const project=document.getElementById('projectName').value||'Unnamed Project';
@@ -543,75 +531,78 @@ async function exportPDF(){
     ?new Date(document.getElementById('estimateDate').value).toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'})
     :new Date().toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'});
 
-  doc.setFillColor(247,244,239); doc.rect(0,0,297,210,'F');
-  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(26,24,20);
-  doc.text('Sekelo',14,18);
-  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(139,105,20);
-  doc.text('BILL OF QUANTITIES — MULTI-LOCATION COST COMPARISON',14,24);
-  doc.setDrawColor(226,217,204); doc.line(14,27,283,27);
-  doc.setFontSize(8); doc.setTextColor(107,94,78);
-  doc.text(`Project: ${project}`,14,33);
-  doc.text(`Client: ${client}`,14,38);
-  doc.text(`Date: ${date}  ·  Border Premium: 20% applied to SZL`,14,43);
-  doc.line(14,46,283,46);
+  doc.setFillColor(247,244,239);doc.rect(0,0,297,210,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(26,24,20);
+  doc.text('Sekelo',14,16);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(139,105,20);
+  doc.text('BILL OF QUANTITIES — MULTI-LOCATION COST COMPARISON',14,22);
+  doc.setDrawColor(226,217,204);doc.line(14,25,283,25);
+  doc.setFontSize(8);doc.setTextColor(107,94,78);
+  doc.text(`Project: ${project}  ·  Client: ${client}  ·  Date: ${date}  ·  Border Premium: 20%`,14,30);
+  doc.line(14,33,283,33);
 
-  // Summary row
-  const summaryData=lastResult.locations.map(loc=>{
-    const {total}=lastResult.grandTotals[loc];
-    const isWin=loc===lastResult.cheapestLoc;
-    return [`${cityLabel(loc)}${isWin?' ★ CHEAPEST':''}`,`R ${total.toFixed(2)}`,`E ${(total*(1+BORDER)).toFixed(2)}`];
+  // Summary
+  const sumData=BRANCHES.map(b=>{
+    const{total}=lastResult.grandTotals[b.key];
+    const isWin=lastResult.cheapest&&b.key===lastResult.cheapest.key;
+    return[`${b.label} (${b.source})${isWin?' ★ CHEAPEST':''}`,`R ${total.toFixed(2)}`,`E ${(total*(1+BORDER)).toFixed(2)}`];
   });
-
-  doc.autoTable({
-    startY:50,
-    head:[['Location','Total (ZAR)','Total (SZL)']],
-    body:summaryData,
-    theme:'grid',
-    headStyles:{fillColor:[26,24,20],textColor:[200,165,90],fontSize:8,fontStyle:'bold'},
-    bodyStyles:{fillColor:[247,244,239],textColor:[26,24,20],fontSize:9},
-    alternateRowStyles:{fillColor:[242,238,232]},
-    margin:{left:14,right:14},
-    tableWidth:160
-  });
-
-  const y2=doc.lastAutoTable.finalY+8;
-
-  // Breakdown
-  const head=[['Material','Qty',...lastResult.locations.map(l=>cityLabel(l).split('—')[0].trim()+' ZAR')]];
-  const body=lastResult.lineItems.map(item=>[
-    item.label,
-    `${item.qty} ${item.unit}`,
-    ...lastResult.locations.map(loc=>item.locTotals[loc]!==null?`R ${item.locTotals[loc].toFixed(2)}`:'—')
-  ]);
-  body.push([
-    {content:'TOTAL',styles:{fontStyle:'bold'}},
-    '',
-    ...lastResult.locations.map(loc=>({content:`R ${lastResult.grandTotals[loc].total.toFixed(2)}`,styles:{fontStyle:'bold',textColor:loc===lastResult.cheapestLoc?[45,107,74]:[26,24,20]}}))
-  ]);
-
-  doc.autoTable({startY:y2,head,body,theme:'grid',
+  doc.autoTable({startY:37,head:[['Location','Total (ZAR)','Total (SZL)']],body:sumData,theme:'grid',
     headStyles:{fillColor:[26,24,20],textColor:[200,165,90],fontSize:7,fontStyle:'bold'},
     bodyStyles:{fillColor:[247,244,239],textColor:[26,24,20],fontSize:8},
-    alternateRowStyles:{fillColor:[242,238,232]},
-    margin:{left:14,right:14}
+    alternateRowStyles:{fillColor:[242,238,232]},margin:{left:14,right:14},tableWidth:150});
+
+  let y=doc.lastAutoTable.finalY+6;
+
+  // Per-category breakdown
+  Object.entries(lastResult.catLineItems).forEach(([catId,lines])=>{
+    const cat=categories.find(c=>c.id===parseInt(catId));
+    if(!cat)return;
+
+    if(y>170){doc.addPage();y=15;}
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(139,105,20);
+    doc.text(cat.name.toUpperCase(),14,y);y+=2;
+
+    const head=[['Product','Qty',...BRANCHES.map(b=>b.label.split(' ')[0]+' ZAR')]];
+    const body=lines.map(item=>[
+      item.prod.product_name,
+      `${item.qty} ${item.prod.unit}`,
+      ...BRANCHES.map(b=>item.locTotals[b.key]!==null?`R ${item.locTotals[b.key].toFixed(2)}`:'—')
+    ]);
+    const subtRow=[{content:'Subtotal',styles:{fontStyle:'bold'}},'',...BRANCHES.map(b=>({content:`R ${lastResult.catTotals[catId][b.key].toFixed(2)}`,styles:{fontStyle:'bold',textColor:lastResult.cheapest&&b.key===lastResult.cheapest.key?[45,107,74]:[26,24,20]}}))];
+    body.push(subtRow);
+
+    doc.autoTable({startY:y,head,body,theme:'grid',
+      headStyles:{fillColor:[26,24,20],textColor:[200,165,90],fontSize:7,fontStyle:'bold'},
+      bodyStyles:{fillColor:[247,244,239],textColor:[26,24,20],fontSize:7},
+      alternateRowStyles:{fillColor:[242,238,232]},
+      margin:{left:14,right:14}});
+    y=doc.lastAutoTable.finalY+5;
   });
 
   const ph=doc.internal.pageSize.height;
-  doc.setFontSize(6); doc.setTextColor(200,186,168);
+  doc.setFontSize(6);doc.setTextColor(200,186,168);
   doc.text('Sekelo · Eswatini Construction Intelligence · Prices verified biweekly · For procurement reference only',14,ph-6);
   doc.save(`Sekelo_BoQ_${project.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
-async function init(){
-  try{
-    const rows=await fetchPrices();
-    const {map,locations:locs}=buildPriceMap(rows);
-    priceData=map; locations=locs;
-    renderMaterials();
-  } catch(e){
-    document.getElementById('materialsBody').innerHTML=`<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--up)">Error: ${e.message}</div>`;
-  }
+// THEME
+function toggleTheme(){
+  const next=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  localStorage.setItem('sekelo_theme',next);
+  document.getElementById('themeBtn').textContent=next==='dark'?'☀':'☾';
 }
+(function(){
+  const t=localStorage.getItem('sekelo_theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('themeBtn').textContent=t==='dark'?'☀':'☾';
+  });
+})();
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
 init();
 </script>
 </body>
