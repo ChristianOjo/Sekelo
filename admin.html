@@ -7,113 +7,256 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;--border:#1E2C3C;--border-2:#253545;--accent:#C8A55A;--up:#E05555;--down:#3DAA6E;--text:#E8E2D5;--text-2:#9A9080;--text-3:#5A5245;--text-4:#3A342C;--serif:'Cormorant Garamond',Georgia,serif;--sans:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;}
+:root{
+  --bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;
+  --border:#1E2C3C;--border-2:#253545;
+  --accent:#C8A55A;--accent-bg:rgba(200,165,90,0.08);
+  --up:#E05555;--up-bg:rgba(224,85,85,0.08);
+  --down:#3DAA6E;--down-bg:rgba(61,170,110,0.08);
+  --flag:#E08A30;--flag-bg:rgba(224,138,48,0.10);
+  --text:#E8E2D5;--text-2:#9A9080;--text-3:#5A5245;--text-4:#3A342C;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'DM Sans',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
 *{margin:0;padding:0;box-sizing:border-box;}html{font-size:14px;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;min-height:100vh;-webkit-font-smoothing:antialiased;}
 
+/* GATE */
 .gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;}
 .gate-card{background:var(--surface);border:1px solid var(--border);padding:48px 40px;width:380px;}
 .gate-logo{font-family:var(--serif);font-size:30px;font-weight:600;margin-bottom:4px;}
-.gate-sub{font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--text-3);margin-bottom:36px;}
+.gate-sub{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:2.5px;color:var(--text-3);margin-bottom:36px;}
 .gate-inp{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;padding:13px 16px;outline:none;margin-bottom:12px;transition:border .2s;}
 .gate-inp:focus{border-color:var(--accent);}
-.gate-btn{width:100%;background:var(--accent);border:none;color:#0C1018;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:14px;cursor:pointer;transition:opacity .2s;}
+.gate-btn{width:100%;background:var(--accent);border:none;color:#0C1018;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:14px;cursor:pointer;transition:opacity .2s;}
 .gate-btn:hover{opacity:.85;}
 .gate-err{font-family:var(--mono);font-size:10px;color:var(--up);margin-top:10px;min-height:16px;}
 
+/* HEADER */
 .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
 .logo-wrap{display:flex;align-items:baseline;gap:10px;text-decoration:none;}
 .logo{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--text);}
 .logo-rule{width:1px;height:12px;background:var(--border-2);align-self:center;}
-.logo-sub{font-family:var(--sans);font-size:9px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:1.5px;}
-.nav-link{font-family:var(--sans);font-size:9px;color:var(--text-3);text-decoration:none;padding:5px 10px;border:1px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
-.nav-link:hover{color:var(--accent);border-color:var(--border);}
+.logo-sub{font-size:9px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:1.5px;}
 .hdr-right{display:flex;gap:8px;}
+.nav-link{font-size:9px;color:var(--text-3);text-decoration:none;padding:5px 10px;border:1px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.nav-link:hover{color:var(--accent);border-color:var(--border);}
 
+/* SUBHEADER */
 .subhdr{background:var(--surface-2);border-bottom:1px solid var(--border);padding:7px 32px;display:flex;align-items:center;justify-content:space-between;}
 .sub-l{font-family:var(--serif);font-size:12px;font-style:italic;color:var(--text-3);}
 .sub-r{font-family:var(--mono);font-size:9px;color:var(--text-4);}
 
-.btabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 32px;overflow-x:auto;}
-.btab{padding:11px 18px;font-family:var(--sans);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+/* MAIN TABS */
+.main-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 32px;}
+.main-tab{padding:12px 20px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;position:relative;white-space:nowrap;}
+.main-tab:hover{color:var(--text-2);}
+.main-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-badge{position:absolute;top:8px;right:4px;background:var(--flag);color:white;font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:2px;min-width:16px;text-align:center;}
+
+/* BRANCH TABS */
+.btabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface-2);padding:0 32px;overflow-x:auto;}
+.btab{padding:10px 16px;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;white-space:nowrap;flex-shrink:0;}
 .btab:hover{color:var(--text-2);}
 .btab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.bsrc{font-family:var(--mono);font-size:8px;opacity:.6;margin-left:5px;}
+.bsrc{font-family:var(--mono);font-size:8px;opacity:.6;margin-left:4px;}
 
-.main{max-width:1140px;padding:20px 32px 90px;}
+/* MAIN */
+.main{padding:20px 32px 90px;}
 
+/* LOADING */
 .loading{padding:60px;text-align:center;}
 .ldots{display:inline-flex;gap:5px;margin-bottom:10px;}
 .ldots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite;}
 .ldots span:nth-child(2){animation-delay:.2s;}.ldots span:nth-child(3){animation-delay:.4s;}
 .ltext{font-family:var(--mono);font-size:10px;color:var(--text-4);}
 
+/* CATEGORY SECTIONS */
 .catsec{margin-bottom:8px;background:var(--surface);border:1px solid var(--border);}
 .cathdr{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s;}
 .cathdr:hover{background:var(--surface-2);}
 .cat-l{display:flex;align-items:center;gap:12px;}
-.catname{font-family:var(--sans);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);}
+.catname{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);}
 .catpill{font-family:var(--mono);font-size:8px;color:var(--text-3);padding:2px 7px;border:1px solid var(--border-2);}
 .catpill.full{color:var(--down);border-color:rgba(61,170,110,.3);}
 .cattog{font-family:var(--mono);font-size:12px;color:var(--text-3);width:20px;text-align:center;}
 .catbody{border-top:1px solid var(--border);}
 .catbody.collapsed{display:none;}
 
+/* PRODUCT TABLE */
 .ptable{width:100%;border-collapse:collapse;}
-.ptable th{font-family:var(--sans);font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.ptable th{font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
 .ptable th.r{text-align:right;}.ptable th.c{text-align:center;}
 .ptable td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
 .ptable tr:last-child td{border-bottom:none;}
+.ptable tr:hover td{background:var(--surface-2);}
 .ptable tr.unavail td{opacity:.35;}
-
-.pname{font-family:var(--sans);font-size:12px;font-weight:400;color:var(--text);}
+.pname{font-size:12px;font-weight:400;color:var(--text);}
 .plast{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-top:3px;}
 .plast.known{color:var(--text-2);}
-.upill{display:inline-block;font-family:var(--mono);font-size:8px;color:var(--text-3);border:1px solid var(--border-2);padding:2px 8px;white-space:nowrap;}
-
+.upill{display:inline-block;font-family:var(--mono);font-size:8px;color:var(--text-3);border:1px solid var(--border-2);padding:2px 8px;}
 .pinp{background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 12px;outline:none;transition:border .2s;width:130px;text-align:right;}
 .pinp:focus{border-color:var(--accent);}
-.pinp.entered{border-color:var(--border-2);color:var(--accent);}
+.pinp.entered{border-color:rgba(200,165,90,.4);color:var(--accent);}
 .pinp:disabled{opacity:.3;cursor:not-allowed;}
-
 .ndisp{font-family:var(--mono);font-size:10px;color:var(--text-3);text-align:right;white-space:nowrap;min-width:100px;}
 .ndisp.live{color:var(--text-2);}
-
 .achk{width:15px;height:15px;cursor:pointer;accent-color:var(--accent);}
-
-.ninp{background:transparent;border:1px solid transparent;color:var(--text-2);font-family:var(--sans);font-size:11px;font-weight:300;padding:7px 10px;outline:none;transition:border .2s;width:100%;min-width:160px;}
+.ninp{background:transparent;border:1px solid transparent;color:var(--text-2);font-size:11px;font-weight:300;padding:7px 10px;outline:none;transition:border .2s;width:100%;min-width:160px;}
 .ninp:focus{border-color:var(--border-2);background:var(--surface-2);}
 .ninp::placeholder{color:var(--text-3);}
 
-.sbar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 32px;display:flex;align-items:center;justify-content:space-between;z-index:50;}
+/* SUBMIT BAR */
+.sbar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 32px;display:flex;align-items:center;justify-content:space-between;z-index:50;gap:12px;flex-wrap:wrap;}
 .sinfo{font-family:var(--mono);font-size:10px;color:var(--text-3);}
 .sinfo b{color:var(--text-2);font-weight:500;}
-.sbtn{background:var(--accent);border:none;color:#0C1018;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:12px 32px;cursor:pointer;transition:opacity .2s;}
+.sbar-btns{display:flex;gap:10px;}
+.sbtn{background:var(--accent);border:none;color:#0C1018;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:12px 24px;cursor:pointer;transition:opacity .2s;}
 .sbtn:hover{opacity:.85;}
 .sbtn:disabled{opacity:.3;cursor:not-allowed;}
+.sbtn-outline{background:none;border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:11px 18px;cursor:pointer;transition:all .2s;}
+.sbtn-outline:hover{background:var(--accent-bg);}
+.sbtn-outline:disabled{opacity:.3;cursor:not-allowed;}
 
-.toast{position:fixed;top:20px;right:20px;background:var(--surface);border:1px solid var(--border);padding:12px 18px;font-family:var(--mono);font-size:10px;color:var(--text);z-index:9999;opacity:0;transform:translateY(-6px);transition:all .3s;pointer-events:none;max-width:320px;}
+/* REVIEW QUEUE */
+.review-empty{padding:60px;text-align:center;}
+.review-empty-icon{font-size:28px;margin-bottom:12px;}
+.review-empty-text{font-family:var(--mono);font-size:11px;color:var(--text-4);}
+
+.rgroup{margin-bottom:14px;}
+.rgroup-hdr{padding:10px 16px;background:var(--surface-2);border:1px solid var(--border);border-bottom:none;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.rgroup-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-2);}
+.rgroup-meta{font-family:var(--mono);font-size:9px;color:var(--text-3);}
+
+.rtable{width:100%;border-collapse:collapse;border:1px solid var(--border);}
+.rtable th{font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface);white-space:nowrap;}
+.rtable th.r{text-align:right;}
+.rtable td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:11px;color:var(--text-2);}
+.rtable tr:last-child td{border-bottom:none;}
+.rtable tr:hover td{background:var(--surface-2);}
+.rtable tr.flagged td{background:var(--flag-bg);}
+.rtable tr.flagged:hover td{background:rgba(224,138,48,0.15);}
+.rtable td.name{font-weight:400;color:var(--text);font-size:12px;}
+.rtable td.mono{font-family:var(--mono);font-size:11px;}
+.rtable td.r{text-align:right;}
+
+/* price diff display */
+.diff{font-family:var(--mono);font-size:10px;font-weight:500;}
+.diff.up{color:var(--up);}
+.diff.down{color:var(--down);}
+.diff.flag{color:var(--flag);}
+.diff.new{color:var(--accent);}
+.diff.flat{color:var(--text-3);}
+.flag-icon{font-size:10px;margin-left:4px;}
+
+/* badges */
+.badge{display:inline-block;font-family:var(--mono);font-size:8px;padding:2px 7px;text-transform:uppercase;letter-spacing:.5px;border:1px solid transparent;}
+.badge-admin{background:var(--accent-bg);color:var(--accent);border-color:rgba(200,165,90,.3);}
+.badge-scraper{background:var(--down-bg);color:var(--down);border-color:rgba(61,170,110,.3);}
+.badge-portal{background:rgba(100,150,255,.08);color:#6496FF;border-color:rgba(100,150,255,.3);}
+.badge-pending{background:var(--accent-bg);color:var(--accent);border-color:rgba(200,165,90,.3);}
+.badge-scheduled{background:rgba(100,150,255,.08);color:#6496FF;border-color:rgba(100,150,255,.3);}
+.badge-approved{background:var(--down-bg);color:var(--down);border-color:rgba(61,170,110,.3);}
+.badge-rejected{background:var(--up-bg);color:var(--up);border-color:rgba(224,85,85,.3);}
+
+/* row actions */
+.row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.ra{font-size:9px;font-weight:500;padding:5px 11px;cursor:pointer;transition:all .2s;border:1px solid transparent;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.ra-approve{background:var(--down-bg);color:var(--down);border-color:rgba(61,170,110,.3);}
+.ra-approve:hover{background:var(--down);color:white;}
+.ra-reject{background:var(--up-bg);color:var(--up);border-color:rgba(224,85,85,.3);}
+.ra-reject:hover{background:var(--up);color:white;}
+.ra-sched{background:var(--accent-bg);color:var(--accent);border-color:rgba(200,165,90,.3);}
+.ra-sched:hover{background:var(--accent);color:#0C1018;}
+
+/* bulk actions */
+.bulk-bar{padding:11px 16px;border:1px solid var(--border);border-top:none;background:var(--surface);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ba{font-size:9px;font-weight:500;padding:7px 14px;cursor:pointer;border:1px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.4px;}
+.ba-approve{background:var(--down);color:white;}
+.ba-approve:hover{opacity:.85;}
+.ba-reject{background:none;border-color:var(--up);color:var(--up);}
+.ba-reject:hover{background:var(--up);color:white;}
+.ba-sched{background:none;border-color:var(--accent);color:var(--accent);}
+.ba-sched:hover{background:var(--accent);color:#0C1018;}
+.ba-info{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-left:auto;}
+.flag-note{font-family:var(--mono);font-size:8px;color:var(--flag);margin-left:4px;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;}
+.modal{background:var(--surface);border:1px solid var(--border);padding:32px;width:440px;max-width:95vw;}
+.modal-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:6px;}
+.modal-sub{font-family:var(--mono);font-size:9px;color:var(--text-4);margin-bottom:22px;}
+.modal-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+.modal-opt{padding:12px 16px;border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.modal-opt:hover{border-color:var(--accent);}
+.modal-opt.sel{border-color:var(--accent);background:var(--accent-bg);}
+.opt-label{font-size:12px;color:var(--text);}
+.opt-sub{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-top:3px;}
+.modal-custom{margin-bottom:18px;display:none;}
+.modal-custom input{background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 14px;outline:none;width:100%;transition:border .2s;}
+.modal-custom input:focus{border-color:var(--accent);}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.modal-cancel{background:none;border:1px solid var(--border);color:var(--text-3);font-size:10px;padding:10px 16px;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:all .2s;}
+.modal-cancel:hover{border-color:var(--up);color:var(--up);}
+.modal-confirm{background:var(--accent);border:none;color:#0C1018;font-size:10px;font-weight:600;padding:10px 20px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:opacity .2s;}
+.modal-confirm:hover{opacity:.85;}
+
+/* TOAST */
+.toast{position:fixed;top:20px;right:20px;background:var(--surface);border:1px solid var(--border);padding:12px 18px;font-family:var(--mono);font-size:10px;color:var(--text);z-index:9999;opacity:0;transform:translateY(-6px);transition:all .3s;pointer-events:none;max-width:340px;line-height:1.6;}
 .toast.show{opacity:1;transform:translateY(0);}
 .toast.ok{border-color:var(--down);color:var(--down);}
 .toast.err{border-color:var(--up);color:var(--up);}
+.toast.info{border-color:var(--accent);color:var(--accent);}
 
 @keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
 ::-webkit-scrollbar{width:3px;height:3px;}::-webkit-scrollbar-thumb{background:var(--border-2);}
-@media(max-width:768px){.header,.subhdr,.main,.sbar{padding-left:16px;padding-right:16px;}.btabs{padding:0 16px;}.ninp{display:none;}.pinp{width:100px;}}
+@media(max-width:768px){
+  .header,.subhdr,.main,.sbar{padding-left:16px;padding-right:16px;}
+  .main-tabs,.btabs{padding:0 16px;}
+  .ninp{display:none;}.pinp{width:100px;}
+}
 </style>
 </head>
 <body>
 
+<!-- GATE -->
 <div class="gate" id="gate">
   <div class="gate-card">
     <div class="gate-logo">Sekelo</div>
     <div class="gate-sub">Price Administration</div>
-    <input type="password" class="gate-inp" id="passInput" placeholder="Password" onkeydown="if(event.key==='Enter')auth()">
+    <input type="password" class="gate-inp" id="passInput" placeholder="Password" autocomplete="new-password" onkeydown="if(event.key==='Enter')auth()">
     <button class="gate-btn" onclick="auth()">Enter</button>
     <div class="gate-err" id="gateErr"></div>
   </div>
 </div>
 
+<!-- SCHEDULE MODAL -->
+<div class="overlay" id="schedModal" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Schedule Publication</div>
+    <div class="modal-sub" id="schedSub">Choose when these prices go live on the dashboard.</div>
+    <div class="modal-opts">
+      <div class="modal-opt sel" id="opt-mon5" onclick="selOpt('mon5')">
+        <div class="opt-label">Monday 5:00 AM</div>
+        <div class="opt-sub" id="mon5label">—</div>
+      </div>
+      <div class="modal-opt" id="opt-custom" onclick="selOpt('custom')">
+        <div class="opt-label">Custom date &amp; time</div>
+        <div class="opt-sub">Choose exactly when to publish</div>
+      </div>
+    </div>
+    <div class="modal-custom" id="customWrap">
+      <input type="datetime-local" id="customDT">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmSched()">Confirm Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
 <div id="app" style="display:none">
   <header class="header">
     <a href="index.html" class="logo-wrap">
@@ -127,51 +270,76 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
   </header>
 
   <div class="subhdr">
-    <div class="sub-l">Price Entry — <span id="branchLabel">—</span></div>
+    <div class="sub-l" id="contextLabel">Price Entry</div>
     <div class="sub-r" id="sessionDate">—</div>
   </div>
 
-  <div class="btabs" id="branchTabs"></div>
+  <div class="main-tabs">
+    <div class="main-tab active" id="tab-entry" onclick="switchTab('entry')">Price Entry</div>
+    <div class="main-tab" id="tab-review" onclick="switchTab('review')">
+      Review Queue
+      <span class="tab-badge" id="pendingBadge" style="display:none">0</span>
+    </div>
+  </div>
+
+  <div class="btabs" id="branchTabs" style="display:flex"></div>
 
   <main class="main">
     <div class="loading" id="loadState">
       <div class="ldots"><span></span><span></span><span></span></div>
-      <div class="ltext">Loading products</div>
+      <div class="ltext">Loading</div>
     </div>
-    <div id="formContent" style="display:none"></div>
+    <div id="entryPanel" style="display:none"><div id="formContent"></div></div>
+    <div id="reviewPanel" style="display:none"><div id="reviewContent"></div></div>
   </main>
 </div>
 
+<!-- SUBMIT BAR -->
 <div class="sbar" id="sbar" style="display:none">
-  <div class="sinfo"><b id="entryCount">0</b> prices entered &nbsp;·&nbsp; <b id="branchName">—</b></div>
-  <button class="sbtn" id="submitBtn" onclick="submitBranch()">Submit Prices</button>
+  <div class="sinfo">
+    <b id="entryCount">0</b> prices entered &nbsp;·&nbsp; <b id="branchName">—</b>
+  </div>
+  <div class="sbar-btns">
+    <button class="sbtn-outline" id="schedBtn" onclick="openModal('submit')" disabled>Schedule</button>
+    <button class="sbtn" id="submitBtn" onclick="submitForReview(null)" disabled>Submit for Review</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const SB_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
-const PASS   = 'sekelo2026';
-const BORDER = 0.20;
+const SB_URL='https://glvpdeneagsqwxzrtaln.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
+const PASS='sekelo2026';
+const BORDER=0.20;
+const FLAG_THRESHOLD=5; // % change that triggers a flag
 
-const BRANCHES = [
+const BRANCHES=[
   {key:'Southgate | Cashbuild',             city:'Joburg',    label:'Southgate',       source:'Cashbuild'},
   {key:'Nelspruit Plaza | Cashbuild',       city:'Nelspruit', label:'Nelspruit Plaza', source:'Cashbuild'},
   {key:'Johannesburg | Builders Warehouse', city:'Joburg',    label:'Johannesburg',    source:'Builders Warehouse'},
   {key:'Mbombela | Builders Warehouse',     city:'Mbombela',  label:'Mbombela',        source:'Builders Warehouse'},
 ];
 
-let categories=[], products=[], lastPrices={}, entries={}, activeBranch=BRANCHES[0].key, collapsedCats=new Set(), busy=false;
+let categories=[],products=[],lastPrices={},entries={};
 BRANCHES.forEach(b=>entries[b.key]={});
+let activeBranch=BRANCHES[0].key,collapsedCats=new Set(),busy=false;
+let activeTab='entry';
 
+// modal state
+let modalMode='submit'; // 'submit' or 'review'
+let modalIds=[];
+let selectedOpt='mon5';
+
+// ── AUTH ──────────────────────────────────────────────────
 function auth(){
   const v=document.getElementById('passInput').value;
   if(v===PASS){
     document.getElementById('gate').style.display='none';
     document.getElementById('app').style.display='block';
-    document.getElementById('sbar').style.display='flex';
-    document.getElementById('sessionDate').textContent=new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    document.getElementById('sessionDate').textContent=
+      new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    sessionStorage.setItem('sekelo_auth','1');
     init();
   }else{
     document.getElementById('gateErr').textContent='Incorrect password.';
@@ -179,60 +347,107 @@ function auth(){
     document.getElementById('passInput').focus();
   }
 }
+// Auto-login if session active
+if(sessionStorage.getItem('sekelo_auth')==='1'){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sessionDate').textContent=
+    new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  document.addEventListener('DOMContentLoaded',init);
+}
 
-async function get(path){
+// ── SUPABASE ──────────────────────────────────────────────
+async function sbGet(path){
   const r=await fetch(`${SB_URL}/rest/v1/${path}`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
-  if(!r.ok) throw new Error(`${r.status} ${path}`);
+  if(!r.ok)throw new Error(`${r.status} — ${path}`);
   return r.json();
 }
-async function post(path,data){
+async function sbPost(path,data){
   return fetch(`${SB_URL}/rest/v1/${path}`,{
     method:'POST',
+    headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json',Prefer:'return=representation'},
+    body:JSON.stringify(data),
+  });
+}
+async function sbPatch(path,data){
+  return fetch(`${SB_URL}/rest/v1/${path}`,{
+    method:'PATCH',
     headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json',Prefer:'return=minimal'},
-    body:JSON.stringify(data)
+    body:JSON.stringify(data),
   });
 }
 
+// ── INIT ──────────────────────────────────────────────────
 async function init(){
   try{
     [categories,products]=await Promise.all([
-      get('categories?select=*&order=display_order&active=eq.true'),
-      get('products?select=*&order=display_order&active=eq.true'),
+      sbGet('categories?select=*&order=display_order&active=eq.true'),
+      sbGet('products?select=*&order=display_order&active=eq.true'),
     ]);
-    const recent=await get('prices?select=product_id,branch,price_zar,normalized_price,timestamp&order=timestamp.desc&limit=2000&product_id=not.is.null');
+    const recent=await sbGet('prices?select=product_id,branch,price_zar,normalized_price,timestamp&product_id=not.is.null&order=timestamp.desc&limit=2000');
     recent.forEach(p=>{
       if(!p.product_id)return;
       if(!lastPrices[p.product_id])lastPrices[p.product_id]={};
-      if(!lastPrices[p.product_id][p.branch])lastPrices[p.product_id][p.branch]={price_zar:p.price_zar,normalized_price:p.normalized_price,timestamp:p.timestamp};
+      if(!lastPrices[p.product_id][p.branch])
+        lastPrices[p.product_id][p.branch]={price_zar:p.price_zar,normalized_price:p.normalized_price,timestamp:p.timestamp};
     });
-    renderTabs();
+    await refreshBadge();
+    renderBranchTabs();
     renderBranch(activeBranch);
     document.getElementById('loadState').style.display='none';
-    document.getElementById('formContent').style.display='block';
+    document.getElementById('entryPanel').style.display='block';
+    document.getElementById('sbar').style.display='flex';
   }catch(e){
-    document.getElementById('loadState').innerHTML=`<div style="color:var(--up);font-family:var(--mono);font-size:11px;line-height:1.8">Error: ${e.message}<br>Run sekelo_schema.sql in Supabase first, then enable anon SELECT on categories and products tables.</div>`;
+    document.getElementById('loadState').innerHTML=
+      `<div style="color:var(--up);font-family:var(--mono);font-size:11px;line-height:1.8;padding:40px">
+        Error: ${e.message}<br>Make sure sekelo_schema.sql and sekelo_staging.sql have been run in Supabase.
+      </div>`;
     console.error(e);
   }
 }
 
-function renderTabs(){
-  document.getElementById('branchTabs').innerHTML=BRANCHES.map(b=>{
-    const idx=BRANCHES.indexOf(b);
-    return `<div class="btab ${b.key===activeBranch?'active':''}" onclick="switchBranch(${idx})">${b.label}<span class="bsrc">${b.source}</span></div>`;
-  }).join('');
+async function refreshBadge(){
+  try{
+    const subs=await sbGet('price_submissions?select=id,status&status=in.(pending,scheduled)');
+    const pending=subs.filter(s=>s.status==='pending').length;
+    const badge=document.getElementById('pendingBadge');
+    if(pending>0){badge.textContent=pending;badge.style.display='inline-block';}
+    else badge.style.display='none';
+  }catch(e){console.warn('Badge refresh failed',e);}
 }
 
+// ── TAB SWITCHING ─────────────────────────────────────────
+function switchTab(tab){
+  activeTab=tab;
+  document.getElementById('tab-entry').classList.toggle('active',tab==='entry');
+  document.getElementById('tab-review').classList.toggle('active',tab==='review');
+  document.getElementById('entryPanel').style.display=tab==='entry'?'block':'none';
+  document.getElementById('reviewPanel').style.display=tab==='review'?'block':'none';
+  document.getElementById('branchTabs').style.display=tab==='entry'?'flex':'none';
+  document.getElementById('sbar').style.display=tab==='entry'?'flex':'none';
+  document.getElementById('contextLabel').textContent=
+    tab==='entry'?`Price Entry — ${BRANCHES.find(b=>b.key===activeBranch)?.label}`:'Review Queue';
+  if(tab==='review')renderReview();
+}
+
+// ── BRANCH TABS ───────────────────────────────────────────
+function renderBranchTabs(){
+  document.getElementById('branchTabs').innerHTML=BRANCHES.map((b,i)=>
+    `<div class="btab ${b.key===activeBranch?'active':''}" onclick="switchBranch(${i})">${b.label}<span class="bsrc">${b.source}</span></div>`
+  ).join('');
+}
 function switchBranch(idx){
   activeBranch=BRANCHES[idx].key;
-  renderTabs();
+  renderBranchTabs();
   renderBranch(activeBranch);
+  document.getElementById('branchName').textContent=BRANCHES[idx].label;
+  document.getElementById('contextLabel').textContent=`Price Entry — ${BRANCHES[idx].label}`;
 }
 
+// ── ENTRY RENDER ──────────────────────────────────────────
 function renderBranch(bk){
   const b=BRANCHES.find(x=>x.key===bk);
-  document.getElementById('branchLabel').textContent=`${b.label} — ${b.source}`;
   document.getElementById('branchName').textContent=b.label;
-
   const bycat={};
   products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
 
@@ -248,16 +463,41 @@ function renderBranch(bk){
       const lp=lastPrices[p.id]?.[bk];
       const hasV=!!e.price_zar;
       const avail=e.available!==false;
-      const lastTxt=lp?`R ${parseFloat(lp.price_zar).toFixed(2)} · ${ago(lp.timestamp)}`:'No previous data';
+      const lastTxt=lp
+        ?`R ${parseFloat(lp.price_zar).toFixed(2)} · ${ago(lp.timestamp)}`
+        :'No previous data';
       const hasN=p.normalized_divisor>1;
-      const normTxt=hasV&&hasN?`R ${(parseFloat(e.price_zar)/p.normalized_divisor).toFixed(2)} / ${p.normalized_unit}`:'—';
+      const normTxt=hasV&&hasN
+        ?`R ${(parseFloat(e.price_zar)/p.normalized_divisor).toFixed(2)} / ${p.normalized_unit}`
+        :'—';
+
       return`<tr id="row_${p.id}" class="${!avail?'unavail':''}">
-        <td><div class="pname">${esc(p.product_name)}</div><div class="plast ${lp?'known':''}">${lastTxt}</div></td>
+        <td>
+          <div class="pname">${esc(p.product_name)}</div>
+          <div class="plast ${lp?'known':''}">${lastTxt}</div>
+        </td>
         <td><span class="upill">${esc(p.unit)}</span></td>
-        <td style="text-align:right"><input type="number" step="0.01" min="0" class="pinp ${hasV?'entered':''}" id="pi_${p.id}" placeholder="R 0.00" value="${e.price_zar||''}" ${!avail?'disabled':''} oninput="setPrice(${p.id},this.value)"></td>
-        <td><div class="ndisp ${hasV&&hasN?'live':''}" id="nd_${p.id}">${normTxt}</div></td>
-        <td style="text-align:center"><input type="checkbox" class="achk" id="av_${p.id}" ${avail?'checked':''} onchange="setAvail(${p.id},this.checked)"></td>
-        <td><input type="text" class="ninp" id="nt_${p.id}" placeholder="Optional note…" value="${esc(e.row_notes||'')}" oninput="setNotes(${p.id},this.value)"></td>
+        <td style="text-align:right">
+          <input type="number" step="0.01" min="0"
+            class="pinp ${hasV?'entered':''}"
+            id="pi_${p.id}" placeholder="R 0.00"
+            value="${e.price_zar||''}"
+            ${!avail?'disabled':''}
+            oninput="setPrice(${p.id},this.value)">
+        </td>
+        <td>
+          <div class="ndisp ${hasV&&hasN?'live':''}" id="nd_${p.id}">${normTxt}</div>
+        </td>
+        <td style="text-align:center">
+          <input type="checkbox" class="achk" id="av_${p.id}"
+            ${avail?'checked':''} onchange="setAvail(${p.id},this.checked)">
+        </td>
+        <td>
+          <input type="text" class="ninp" id="nt_${p.id}"
+            placeholder="Optional note…"
+            value="${esc(e.row_notes||'')}"
+            oninput="setNotes(${p.id},this.value)">
+        </td>
       </tr>`;
     }).join('');
 
@@ -277,7 +517,7 @@ function renderBranch(bk){
             <th class="r" style="min-width:145px">Price (ZAR)</th>
             <th class="r" style="min-width:120px">R / Unit</th>
             <th class="c" style="min-width:80px">Available</th>
-            <th style="min-width:170px">Notes</th>
+            <th style="min-width:160px">Notes</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -287,21 +527,22 @@ function renderBranch(bk){
   updateBar();
 }
 
+// ── ENTRY HANDLERS ────────────────────────────────────────
 function setPrice(pid,val){
   if(!entries[activeBranch][pid])entries[activeBranch][pid]={available:true};
   entries[activeBranch][pid].price_zar=val;
-  const el=document.getElementById(`pi_${pid}`);
-  if(el)el.classList.toggle('entered',!!val);
+  document.getElementById(`pi_${pid}`)?.classList.toggle('entered',!!val);
   const prod=products.find(p=>p.id===pid);
   const nd=document.getElementById(`nd_${pid}`);
   if(nd&&prod){
     const n=parseFloat(val);
-    if(val&&!isNaN(n)&&prod.normalized_divisor>1){nd.textContent=`R ${(n/prod.normalized_divisor).toFixed(2)} / ${prod.normalized_unit}`;nd.classList.add('live');}
-    else{nd.textContent='—';nd.classList.remove('live');}
+    if(val&&!isNaN(n)&&prod.normalized_divisor>1){
+      nd.textContent=`R ${(n/prod.normalized_divisor).toFixed(2)} / ${prod.normalized_unit}`;
+      nd.classList.add('live');
+    }else{nd.textContent='—';nd.classList.remove('live');}
   }
   updateBar();
 }
-
 function setAvail(pid,checked){
   if(!entries[activeBranch][pid])entries[activeBranch][pid]={};
   entries[activeBranch][pid].available=checked;
@@ -310,27 +551,37 @@ function setAvail(pid,checked){
   if(row)row.classList.toggle('unavail',!checked);
   if(inp){inp.disabled=!checked;if(!checked){inp.value='';setPrice(pid,'');}}
 }
-
 function setNotes(pid,val){
   if(!entries[activeBranch][pid])entries[activeBranch][pid]={};
   entries[activeBranch][pid].row_notes=val;
 }
-
 function toggleCat(ck){
   const catId=ck.split('||')[1];
   const body=document.getElementById(`cb_${catId}`);
   const icon=document.getElementById(`ct_${catId}`);
-  if(collapsedCats.has(ck)){collapsedCats.delete(ck);if(body)body.classList.remove('collapsed');if(icon)icon.textContent='−';}
-  else{collapsedCats.add(ck);if(body)body.classList.add('collapsed');if(icon)icon.textContent='+';}
+  if(collapsedCats.has(ck)){
+    collapsedCats.delete(ck);
+    if(body)body.classList.remove('collapsed');
+    if(icon)icon.textContent='−';
+  }else{
+    collapsedCats.add(ck);
+    if(body)body.classList.add('collapsed');
+    if(icon)icon.textContent='+';
+  }
+}
+function updateBar(){
+  const count=Object.values(entries[activeBranch]).filter(e=>e.price_zar).length;
+  document.getElementById('entryCount').textContent=count;
+  document.getElementById('submitBtn').disabled=count===0;
+  document.getElementById('schedBtn').disabled=count===0;
 }
 
-async function submitBranch(){
-  if(busy)return;
-  const b=BRANCHES.find(x=>x.key===activeBranch);
+// ── BUILD SUBMISSION ROWS ─────────────────────────────────
+function buildRows(bk,publishAt,status){
+  const b=BRANCHES.find(x=>x.key===bk);
   const now=new Date().toISOString();
   const rows=[];
-
-  for(const[pidStr,entry]of Object.entries(entries[activeBranch])){
+  for(const[pidStr,entry]of Object.entries(entries[bk])){
     const pid=parseInt(pidStr);
     const prod=products.find(p=>p.id===pid);
     if(!prod)continue;
@@ -339,51 +590,324 @@ async function submitBranch(){
     const isU=entry.available===false;
     if(!hasP&&!isU)continue;
     const fp=hasP?pz:0;
-    const np=hasP&&prod.normalized_divisor>1?parseFloat((fp/prod.normalized_divisor).toFixed(4)):null;
+    const np=hasP&&prod.normalized_divisor>1
+      ?parseFloat((fp/prod.normalized_divisor).toFixed(4))
+      :null;
     rows.push({
-      product_id:pid,category_id:prod.category_id,
+      source:'admin',
+      status:status||'pending',
+      publish_at:publishAt||null,
+      product_id:pid,
+      category_id:prod.category_id,
       material_id:`c${prod.category_id}_p${pid}`,
       material:prod.product_name,
-      branch:activeBranch,city:b.city,source:b.source,
-      price_zar:fp,price_szl:parseFloat((fp*(1+BORDER)).toFixed(2)),
-      normalized_price:np,available:!isU,
-      row_notes:entry.row_notes||null,timestamp:now,
+      branch:bk,city:b.city,source_retailer:b.source,
+      price_zar:fp,
+      price_szl:parseFloat((fp*(1+BORDER)).toFixed(2)),
+      normalized_price:np,
+      available:!isU,
+      row_notes:entry.row_notes||null,
+      submitted_at:now,
     });
   }
+  return rows;
+}
 
-  if(!rows.length){toast('No prices to submit.','err');return;}
+// ── SUBMIT FOR REVIEW ─────────────────────────────────────
+async function submitForReview(publishAt){
+  if(busy)return;
+  const status=publishAt?'scheduled':'pending';
+  const rows=buildRows(activeBranch,publishAt,status);
+  if(!rows.length){toast('No prices entered.','err');return;}
+
   busy=true;
   const btn=document.getElementById('submitBtn');
+  const sbtn=document.getElementById('schedBtn');
   btn.disabled=true;btn.textContent='Submitting…';
+  sbtn.disabled=true;
 
   try{
-    const res=await post('prices',rows);
+    const res=await sbPost('price_submissions',rows);
     if(res.ok){
-      rows.forEach(r=>{
-        if(!lastPrices[r.product_id])lastPrices[r.product_id]={};
-        lastPrices[r.product_id][activeBranch]={price_zar:r.price_zar,normalized_price:r.normalized_price,timestamp:r.timestamp};
-      });
-      toast(`✓ ${rows.length} price${rows.length!==1?'s':''} saved for ${b.label}`,'ok');
+      const b=BRANCHES.find(x=>x.key===activeBranch);
+      if(publishAt){
+        const dt=new Date(publishAt).toLocaleString('en-ZA',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        toast(`⏱ ${rows.length} price${rows.length!==1?'s':''} scheduled for ${dt}\nCheck Review Queue to approve.`,'info');
+      }else{
+        toast(`✓ ${rows.length} price${rows.length!==1?'s':''} submitted for ${b.label}\nGo to Review Queue to approve.`,'ok');
+      }
       entries[activeBranch]={};
       renderBranch(activeBranch);
+      await refreshBadge();
     }else{
       toast('Submit failed — see console.','err');
       console.error(await res.text());
     }
   }catch(e){toast('Network error.','err');console.error(e);}
-  finally{busy=false;btn.disabled=false;btn.textContent='Submit Prices';}
+  finally{busy=false;btn.disabled=false;btn.textContent='Submit for Review';updateBar();}
 }
 
-function updateBar(){
-  document.getElementById('entryCount').textContent=Object.values(entries[activeBranch]).filter(e=>e.price_zar).length;
+// ── REVIEW ACTIONS ────────────────────────────────────────
+async function approveIds(ids){
+  try{
+    // Fetch full submission records
+    const subs=await sbGet(`price_submissions?id=in.(${ids.join(',')})&select=*`);
+    const priceRows=subs.map(s=>({
+      product_id:s.product_id,category_id:s.category_id,
+      material_id:s.material_id,material:s.material,
+      branch:s.branch,city:s.city,source:s.source_retailer,
+      price_zar:s.price_zar,price_szl:s.price_szl,
+      normalized_price:s.normalized_price,
+      available:s.available,row_notes:s.row_notes,
+      timestamp:s.submitted_at,
+    }));
+    const ins=await sbPost('prices',priceRows);
+    if(!ins.ok)throw new Error('Insert into prices failed');
+    await sbPatch(`price_submissions?id=in.(${ids.join(',')})`,
+      {status:'approved',reviewed_at:new Date().toISOString()});
+    // Update local cache
+    subs.forEach(s=>{
+      if(!s.product_id)return;
+      if(!lastPrices[s.product_id])lastPrices[s.product_id]={};
+      lastPrices[s.product_id][s.branch]={
+        price_zar:s.price_zar,
+        normalized_price:s.normalized_price,
+        timestamp:s.submitted_at,
+      };
+    });
+    toast(`✓ ${ids.length} price${ids.length!==1?'s':''} approved and live on dashboard`,'ok');
+    await refreshBadge();
+    renderReview();
+  }catch(e){toast('Approve failed — see console.','err');console.error(e);}
 }
 
+async function rejectIds(ids){
+  try{
+    await sbPatch(`price_submissions?id=in.(${ids.join(',')})`,
+      {status:'rejected',reviewed_at:new Date().toISOString()});
+    toast(`${ids.length} submission${ids.length!==1?'s':''} rejected`,'err');
+    await refreshBadge();
+    renderReview();
+  }catch(e){toast('Reject failed.','err');console.error(e);}
+}
+
+async function scheduleIds(ids,publishAt){
+  try{
+    await sbPatch(`price_submissions?id=in.(${ids.join(',')})`,
+      {status:'scheduled',publish_at:publishAt});
+    const dt=new Date(publishAt).toLocaleString('en-ZA',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    toast(`⏱ Scheduled for ${dt}`,'info');
+    await refreshBadge();
+    renderReview();
+  }catch(e){toast('Schedule failed.','err');console.error(e);}
+}
+
+// ── REVIEW RENDER ─────────────────────────────────────────
+async function renderReview(){
+  document.getElementById('reviewContent').innerHTML=`
+    <div class="loading">
+      <div class="ldots"><span></span><span></span><span></span></div>
+      <div class="ltext">Loading submissions</div>
+    </div>`;
+
+  try{
+    const subs=await sbGet(
+      'price_submissions?status=in.(pending,scheduled)&select=*&order=submitted_at.desc&limit=300'
+    );
+
+    if(!subs.length){
+      document.getElementById('reviewContent').innerHTML=`
+        <div class="review-empty">
+          <div class="review-empty-icon">✓</div>
+          <div class="review-empty-text">No pending submissions.<br>All prices are up to date.</div>
+        </div>`;
+      return;
+    }
+
+    // Group by branch + submission date
+    const groups={};
+    subs.forEach(s=>{
+      const date=s.submitted_at.split('T')[0];
+      const gk=`${s.branch}||${date}||${s.source}`;
+      if(!groups[gk])groups[gk]={branch:s.branch,date,source:s.source,items:[]};
+      groups[gk].items.push(s);
+    });
+
+    // Count flags per group
+    const flagCount=subs.filter(s=>{
+      const lp=lastPrices[s.product_id]?.[s.branch];
+      if(!lp||s.available===false)return false;
+      const pct=Math.abs((parseFloat(s.price_zar)-parseFloat(lp.price_zar))/parseFloat(lp.price_zar)*100);
+      return pct>FLAG_THRESHOLD;
+    }).length;
+
+    const html=Object.values(groups).map(g=>{
+      const ids=g.items.map(i=>i.id);
+      const groupFlags=g.items.filter(s=>{
+        const lp=lastPrices[s.product_id]?.[s.branch];
+        if(!lp||s.available===false)return false;
+        const pct=Math.abs((parseFloat(s.price_zar)-parseFloat(lp.price_zar))/parseFloat(lp.price_zar)*100);
+        return pct>FLAG_THRESHOLD;
+      }).length;
+
+      const rows=g.items.map(s=>{
+        const lp=lastPrices[s.product_id]?.[s.branch];
+        const pz=parseFloat(s.price_zar);
+        const prod=products.find(p=>p.id===s.product_id);
+
+        // Calculate diff
+        let diffHtml='<span class="diff new">New</span>';
+        let isFlagged=false;
+        if(lp&&s.available!==false){
+          const lpz=parseFloat(lp.price_zar);
+          if(lpz>0){
+            const pct=(pz-lpz)/lpz*100;
+            const absPct=Math.abs(pct);
+            isFlagged=absPct>FLAG_THRESHOLD;
+            if(absPct<0.1){
+              diffHtml=`<span class="diff flat">→ flat</span>`;
+            }else if(isFlagged){
+              const cls=pct>0?'up':'down';
+              diffHtml=`<span class="diff flag">${pct>0?'↑':'↓'} ${absPct.toFixed(1)}%<span class="flag-icon">⚑</span></span>`;
+            }else{
+              const cls=pct>0?'up':'down';
+              diffHtml=`<span class="diff ${cls}">${pct>0?'↑':'↓'} ${absPct.toFixed(1)}%</span>`;
+            }
+          }
+        }
+
+        const schedInfo=s.publish_at
+          ?`<div style="font-family:var(--mono);font-size:8px;color:var(--text-3);margin-top:3px">
+              ${new Date(s.publish_at).toLocaleString('en-ZA',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+            </div>`
+          :'';
+
+        return`<tr ${isFlagged?'class="flagged"':''}>
+          <td class="name">
+            ${esc(s.material||prod?.product_name||'Unknown')}
+            ${s.row_notes?`<div style="font-size:10px;color:var(--text-3);margin-top:2px">${esc(s.row_notes)}</div>`:''}
+          </td>
+          <td><span class="badge badge-${s.source}">${s.source}</span></td>
+          <td class="mono r">R ${pz.toFixed(2)}</td>
+          <td class="r">
+            ${lp
+              ?`<span class="mono" style="color:var(--text-3)">R ${parseFloat(lp.price_zar).toFixed(2)}</span>`
+              :'<span style="color:var(--text-4)">—</span>'}
+          </td>
+          <td class="r">${diffHtml}</td>
+          <td>
+            <span class="badge badge-${s.status}">${s.status}</span>
+            ${schedInfo}
+          </td>
+          <td>
+            <div class="row-actions">
+              <button class="ra ra-approve" onclick="approveIds([${s.id}])">Approve</button>
+              <button class="ra ra-reject" onclick="rejectIds([${s.id}])">Reject</button>
+              <button class="ra ra-sched" onclick="openModal('review',[${s.id}])">Schedule</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      const b=BRANCHES.find(x=>x.key===g.branch);
+      return`<div class="rgroup">
+        <div class="rgroup-hdr">
+          <div>
+            <div class="rgroup-title">
+              ${b?b.label:g.branch}
+              <span style="font-family:var(--mono);font-size:8px;color:var(--text-3);margin-left:6px">${b?.source||''}</span>
+              ${groupFlags>0?`<span style="font-family:var(--mono);font-size:8px;color:var(--flag);margin-left:8px">⚑ ${groupFlags} flag${groupFlags!==1?'s':''} &gt;${FLAG_THRESHOLD}%</span>`:''}
+            </div>
+          </div>
+          <div class="rgroup-meta">${g.items.length} item${g.items.length!==1?'s':''} · submitted ${g.date}</div>
+        </div>
+        <table class="rtable">
+          <thead><tr>
+            <th style="min-width:200px">Product</th>
+            <th>Source</th>
+            <th class="r">New Price</th>
+            <th class="r">Last Known</th>
+            <th class="r">Change</th>
+            <th>Status</th>
+            <th style="min-width:220px">Actions</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="bulk-bar">
+          <button class="ba ba-approve" onclick="approveIds([${ids.join(',')}])">Approve All</button>
+          <button class="ba ba-reject" onclick="rejectIds([${ids.join(',')}])">Reject All</button>
+          <button class="ba ba-sched" onclick="openModal('review',[${ids.join(',')}])">Schedule All</button>
+          <div class="ba-info">${g.items.length} item${g.items.length!==1?'s':''} · ${groupFlags>0?`<span style="color:var(--flag)">⚑ ${groupFlags} flagged</span>`:'no flags'}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Summary banner if there are flags
+    const banner=flagCount>0
+      ?`<div style="background:var(--flag-bg);border:1px solid var(--flag);padding:10px 16px;margin-bottom:14px;font-family:var(--mono);font-size:10px;color:var(--flag)">
+          ⚑ ${flagCount} submission${flagCount!==1?'s':''} flagged with price movements above ${FLAG_THRESHOLD}%. Review these carefully before approving.
+        </div>`
+      :'';
+
+    document.getElementById('reviewContent').innerHTML=banner+html;
+  }catch(e){
+    document.getElementById('reviewContent').innerHTML=
+      `<div style="color:var(--up);font-family:var(--mono);font-size:11px;padding:40px">Error: ${e.message}</div>`;
+    console.error(e);
+  }
+}
+
+// ── SCHEDULE MODAL ────────────────────────────────────────
+function openModal(mode,ids){
+  modalMode=mode;
+  modalIds=ids||[];
+  selectedOpt='mon5';
+  selOpt('mon5');
+  // Set Monday 5am label
+  const m=nextMon5am();
+  document.getElementById('mon5label').textContent=
+    m.toLocaleString('en-ZA',{weekday:'long',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('schedModal').style.display='flex';
+}
+function closeModal(){document.getElementById('schedModal').style.display='none';}
+function selOpt(val){
+  selectedOpt=val;
+  document.getElementById('opt-mon5').classList.toggle('sel',val==='mon5');
+  document.getElementById('opt-custom').classList.toggle('sel',val==='custom');
+  document.getElementById('customWrap').style.display=val==='custom'?'block':'none';
+}
+async function confirmSched(){
+  let publishAt;
+  if(selectedOpt==='mon5'){
+    publishAt=nextMon5am().toISOString();
+  }else{
+    const v=document.getElementById('customDT').value;
+    if(!v){toast('Please select a date and time.','err');return;}
+    publishAt=new Date(v).toISOString();
+  }
+  closeModal();
+  if(modalMode==='submit'){
+    await submitForReview(publishAt);
+  }else{
+    await scheduleIds(modalIds,publishAt);
+  }
+}
+function nextMon5am(){
+  const d=new Date();
+  const day=d.getDay(); // 0=Sun
+  const daysUntil=day===0?1:8-day;
+  d.setDate(d.getDate()+daysUntil);
+  d.setHours(5,0,0,0);
+  return d;
+}
+
+// ── HELPERS ───────────────────────────────────────────────
 function toast(msg,type='ok'){
   const el=document.getElementById('toast');
-  el.textContent=msg;el.className=`toast show ${type}`;
-  setTimeout(()=>el.classList.remove('show'),4000);
+  el.textContent=msg;
+  el.className=`toast show ${type}`;
+  setTimeout(()=>el.classList.remove('show'),5000);
 }
-
 function ago(ts){
   if(!ts)return'';
   const d=Math.floor((Date.now()-new Date(ts).getTime())/86400000);
@@ -391,8 +915,9 @@ function ago(ts){
   if(d<7)return`${d}d ago`;if(d<30)return`${Math.floor(d/7)}w ago`;
   return`${Math.floor(d/30)}mo ago`;
 }
-
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 </body>
 </html>
