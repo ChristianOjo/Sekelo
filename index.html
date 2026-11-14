@@ -258,6 +258,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
 
   <main class="main">
     <div class="legend" id="branchLegend"></div>
+    <div class="cattabs" id="catTabs"></div>
     <div class="toolbar" id="toolbar">
       <input type="search" id="searchInput" class="search-inp" placeholder="Search products or units…" autocomplete="off" oninput="filterProducts()">
       <span class="filter-count" id="filterCount"></span>
@@ -310,12 +311,15 @@ async function init(){
     prices.forEach(p=>{
       if(!p.product_id)return;
       if(!priceMap[p.product_id])priceMap[p.product_id]={};
-      if(!priceMap[p.product_id][p.branch]){
-        priceMap[p.product_id][p.branch]={current:p,previous:null};
-      } else if(!priceMap[p.product_id][p.branch].previous){
-        priceMap[p.product_id][p.branch].previous=p;
-      }
+      const m=priceMap[p.product_id];
+      if(!m[p.branch])m[p.branch]={history:[]};
+      m[p.branch].history.push(p);
     });
+    Object.keys(priceMap).forEach(pid=>Object.keys(priceMap[pid]).forEach(bk=>{
+      const h=priceMap[pid][bk].history; // already desc by timestamp
+      priceMap[pid][bk].current=h[0]||null;
+      priceMap[pid][bk].previous=h[1]||null;
+    }));
 
     document.getElementById('statCats').textContent=categories.length;
     document.getElementById('statProds').textContent=products.length;
@@ -328,6 +332,7 @@ async function init(){
     renderLegend();
     renderDashboard();
     document.getElementById('toolbar').style.display='flex';
+    renderCatTabs();
 
     document.getElementById('loadState').style.display='none';
     document.getElementById('dashContent').style.display='block';
@@ -398,6 +403,7 @@ function renderDashboard(){
           <div class="pc-szl">E ${szl.toFixed(2)}</div>
           ${normHtml}
           ${wowHtml}
+          ${sparkSvg(data.history)}
         </td>`;
       }).join('');
 
@@ -564,6 +570,33 @@ function exportCSVIndex(){
   });
   exportCSV('sekelo-price-index-'+new Date().toISOString().slice(0,10)+'.csv', rows);
   toast('Price index exported as CSV','ok');
+}
+// ── SPARKLINE (last <=8 price points) ────────────────────
+function sparkSvg(history){
+  if(!history||history.length<2) return '';
+  const pts=history.slice(0,8).map(p=>parseFloat(p.price_zar)).filter(v=>!isNaN(v)&&v>0).reverse();
+  if(pts.length<2) return '';
+  const w=64,h=16,pad=1;
+  const min=Math.min.apply(null,pts), max=Math.max.apply(null,pts);
+  const rng=max-min||1;
+  const step=(w-2*pad)/(pts.length-1);
+  const coords=pts.map(function(v,i){return (pad+i*step).toFixed(1)+','+(pad+(h-2*pad)*(1-(v-min)/rng)).toFixed(1);});
+  const trend=pts[pts.length-1]-pts[0];
+  const color=trend>0?'var(--up)':trend<0?'var(--down)':'var(--text-3)';
+  return '<svg class="spark" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="margin-top:4px"><polyline points="'+coords.join(' ')+'" fill="none" stroke="'+color+'" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+// ── CATEGORY FILTER TABS ─────────────────────────────────
+function renderCatTabs(){
+  const el=document.getElementById('catTabs'); if(!el) return;
+  const tabs=[{id:'all',name:'All'}].concat(categories.map(function(c){return {id:c.id,name:c.name};}));
+  el.innerHTML=tabs.map(function(t){return '<button class="cattab'+(t.id==='all'?' active':'')+'" data-cat="'+t.id+'" onclick="selectCat(\''+t.id+'\')">'+esc(t.name)+'</button>';}).join('');
+}
+function selectCat(id){
+  document.querySelectorAll('#catTabs .cattab').forEach(function(b){b.classList.toggle('active', b.dataset.cat===String(id));});
+  document.querySelectorAll('#dashContent .catsec').forEach(function(sec){
+    const cid=sec.id.replace('cat_','');
+    sec.style.display=(id==='all'||cid===String(id))?'':'none';
+  });
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>
