@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sekelo — Construction Price Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+<style>
+:root{
+  --bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;--border:#1E2C3C;--border-2:#253545;
+  --accent:#C8A55A;--accent-bg:rgba(200,165,90,0.08);
+  --up:#E05555;--up-bg:rgba(224,85,85,0.08);
+  --down:#3DAA6E;--down-bg:rgba(61,170,110,0.08);
+  --text:#E8E2D5;--text-2:#9A9080;--text-3:#5A5245;--text-4:#3A342C;
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,0.3);
+}
+[data-theme="light"]{
+  --bg:#F7F4EF;--surface:#FFFFFF;--surface-2:#F2EEE8;--border:#E2D9CC;--border-2:#D0C4B3;
+  --accent:#8B6914;--accent-bg:rgba(139,105,20,0.06);
+  --up:#B83232;--up-bg:rgba(184,50,50,0.06);
+  --down:#2D6B4A;--down-bg:rgba(45,107,74,0.06);
+  --text:#1A1814;--text-2:#6B5E4E;--text-3:#A89880;--text-4:#C8BAA8;
+  --shadow:0 1px 3px rgba(0,0,0,0.06);
+}
+*{margin:0;padding:0;box-sizing:border-box;}html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;min-height:100vh;transition:background .25s,color .25s;-webkit-font-smoothing:antialiased;}
+
+/* ── GATE ─────────────────────────────────────────────── */
+.gate{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;
+}
+.gate-card{
+  background:var(--surface);border:1px solid var(--border);
+  padding:52px 44px;width:400px;max-width:92vw;
+  animation:gateIn .35s cubic-bezier(.16,1,.3,1) forwards;
+}
+@keyframes gateIn{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.gate-brand{margin-bottom:32px;}
+.gate-logo{
+  font-family:var(--serif);font-size:32px;font-weight:600;
+  letter-spacing:.5px;color:var(--text);line-height:1;
+}
+.gate-tagline{
+  font-family:var(--serif);font-size:13px;font-style:italic;
+  color:var(--text-3);margin-top:4px;
+}
+.gate-divider{
+  width:32px;height:1px;background:var(--accent);
+  margin:20px 0;opacity:.6;
+}
+.gate-label{
+  font-size:9px;font-weight:500;text-transform:uppercase;
+  letter-spacing:2px;color:var(--text-3);margin-bottom:8px;
+}
+.gate-inp{
+  width:100%;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:14px;
+  padding:13px 16px;outline:none;margin-bottom:12px;
+  transition:border .2s;
+}
+.gate-inp:focus{border-color:var(--accent);}
+.gate-btn{
+  width:100%;background:var(--accent);border:none;
+  color:#0C1018;font-size:10px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;
+  padding:14px;cursor:pointer;transition:opacity .2s;
+  margin-top:4px;
+}
+.gate-btn:hover{opacity:.85;}
+.gate-btn:disabled{opacity:.4;cursor:not-allowed;}
+.gate-err{
+  font-family:var(--mono);font-size:10px;color:var(--up);
+  margin-top:10px;min-height:16px;
+}
+.gate-foot{
+  margin-top:28px;padding-top:20px;border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:9px;color:var(--text-4);
+  line-height:1.6;
+}
+
+/* ── APP (hidden until authed) ────────────────────────── */
+#app{display:none;}
+
+/* ── HEADER ───────────────────────────────────────────── */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+.logo-wrap{display:flex;align-items:baseline;gap:10px;text-decoration:none;}
+.logo{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--text);letter-spacing:.5px;}
+.logo-rule{width:1px;height:14px;background:var(--border-2);align-self:center;}
+.logo-sub{font-family:var(--sans);font-size:11px;font-weight:300;color:var(--text-3);}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.nav-link{font-family:var(--sans);font-size:11px;font-weight:400;color:var(--text-3);text-decoration:none;padding:6px 12px;border:1px solid transparent;transition:all .2s;}
+.nav-link:hover{color:var(--accent);border-color:var(--border);}
+.theme-btn{background:none;border:1px solid var(--border);color:var(--text-3);width:32px;height:32px;cursor:pointer;font-size:14px;transition:all .2s;}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent);}
+.export-btn{background:none;border:1px solid var(--accent);color:var(--accent);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.5px;padding:6px 14px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+.export-btn:hover{background:var(--accent);color:var(--surface);}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--text-3);font-family:var(--sans);font-size:10px;letter-spacing:.5px;padding:6px 12px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+.logout-btn:hover{border-color:var(--up);color:var(--up);}
+
+/* ── SUBHEADER ────────────────────────────────────────── */
+.subhdr{background:var(--surface-2);border-bottom:1px solid var(--border);padding:7px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.sub-l{font-family:var(--serif);font-size:12px;font-style:italic;color:var(--text-3);}
+.sub-r{display:flex;align-items:center;gap:16px;}
+.sub-stat{font-family:var(--mono);font-size:9px;color:var(--text-4);}
+.sub-stat b{color:var(--text-3);font-weight:500;}
+.last-updated{font-family:var(--mono);font-size:9px;color:var(--text-4);}
+.last-updated b{color:var(--accent);font-weight:500;}
+
+/* ── MAIN ─────────────────────────────────────────────── */
+.main{padding:20px 32px 48px;}
+
+/* BRANCH LEGEND */
+.legend{display:flex;gap:1px;margin-bottom:16px;background:var(--border);}
+.leg-cell{flex:1;background:var(--surface);padding:10px 14px;}
+.leg-branch{font-family:var(--sans);font-size:10px;font-weight:500;color:var(--text);text-transform:uppercase;letter-spacing:.5px;}
+.leg-src{font-family:var(--mono);font-size:8px;color:var(--text-3);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+.leg-city{font-family:var(--mono);font-size:8px;color:var(--text-4);margin-top:1px;}
+
+/* CATEGORY SECTION */
+.catsec{margin-bottom:10px;background:var(--surface);border:1px solid var(--border);overflow:hidden;animation:fadeIn .3s forwards;}
+.cathdr{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s;}
+.cathdr:hover{background:var(--surface-2);}
+.cat-l{display:flex;align-items:center;gap:12px;}
+.catname{font-family:var(--sans);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);}
+.catpill{font-family:var(--mono);font-size:8px;color:var(--text-3);padding:2px 7px;border:1px solid var(--border-2);}
+.catpill.full{color:var(--down);border-color:rgba(61,170,110,.3);}
+.cat-r{display:flex;align-items:center;gap:12px;}
+.cattog{font-family:var(--mono);font-size:12px;color:var(--text-3);width:20px;text-align:center;}
+
+/* PRODUCT TABLE */
+.catbody{border-top:1px solid var(--border);overflow-x:auto;}
+.catbody.collapsed{display:none;}
+.ptable{width:100%;border-collapse:collapse;min-width:800px;}
+.ptable thead tr{border-bottom:1px solid var(--border);}
+.ptable th{font-family:var(--sans);font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);padding:7px 14px;text-align:left;}
+.ptable th.branch-th{text-align:right;border-left:1px solid var(--border);}
+.ptable tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+.ptable tbody tr:last-child{border-bottom:none;}
+.ptable tbody tr:hover{background:var(--surface-2);}
+.ptable td{padding:10px 14px;vertical-align:middle;}
+.ptable td.branch-td{text-align:right;border-left:1px solid var(--border);vertical-align:top;padding:10px 14px;}
+
+/* PRODUCT NAME CELL */
+.pname{font-family:var(--sans);font-size:12px;font-weight:400;color:var(--text);}
+.upill{display:inline-block;font-family:var(--mono);font-size:8px;color:var(--text-3);border:1px solid var(--border-2);padding:2px 7px;margin-top:4px;}
+
+/* PRICE CELL */
+.pc-zar{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);}
+.pc-szl{font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:2px;}
+.pc-norm{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-top:2px;}
+.pc-wow{display:inline-block;font-family:var(--mono);font-size:8px;padding:1px 5px;margin-top:3px;letter-spacing:.3px;}
+.pc-wow.up{background:var(--up-bg);color:var(--up);}
+.pc-wow.down{background:var(--down-bg);color:var(--down);}
+.pc-wow.flat{color:var(--text-3);}
+.pc-na{font-family:var(--mono);font-size:10px;color:var(--text-4);}
+.pc-oos{font-family:var(--sans);font-size:9px;color:var(--text-3);font-style:italic;}
+
+/* LOADING */
+/* ── TOOLBAR / SEARCH / RETRY ───────────────────────────── */
+.toolbar{display:none;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.search-inp{flex:1;min-width:200px;max-width:420px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;padding:9px 14px;outline:none;transition:border .2s;}
+.search-inp:focus{border-color:var(--accent);}
+.search-inp::placeholder{color:var(--text-3);}
+.filter-count{font-family:var(--mono);font-size:9px;color:var(--text-3);}
+.retry-btn{background:none;border:1px solid var(--accent);color:var(--accent);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:10px 22px;cursor:pointer;transition:all .2s;}
+.retry-btn:hover{background:var(--accent);color:var(--surface);}
+.loading{padding:80px;text-align:center;}
+.ldots{display:inline-flex;gap:5px;margin-bottom:12px;}
+.ldots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite;}
+.ldots span:nth-child(2){animation-delay:.2s;}.ldots span:nth-child(3){animation-delay:.4s;}
+.ltext{font-family:var(--mono);font-size:10px;color:var(--text-4);}
+
+/* FOOTER */
+.footer{padding:20px 32px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.footer-text{font-family:var(--sans);font-size:10px;color:var(--text-4);}
+.footer-text b{color:var(--text-3);font-weight:400;}
+.disclaimer{font-family:var(--sans);font-size:9px;color:var(--text-4);line-height:1.5;max-width:600px;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
+::-webkit-scrollbar{width:3px;height:3px;}::-webkit-scrollbar-thumb{background:var(--border-2);}
+
+@media(max-width:768px){
+  .header,.subhdr,.main,.footer{padding-left:16px;padding-right:16px;}
+  .logo-sub,.nav-link{display:none;}
+  .legend{overflow-x:auto;flex-wrap:nowrap;}
+  .leg-cell{min-width:130px;flex:0 0 auto;}
+  .sub-r{gap:8px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── GATE ──────────────────────────────────────────────── -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-brand">
+      <div class="gate-logo">Sekelo</div>
+      <div class="gate-tagline">Construction Price Intelligence</div>
+    </div>
+    <div class="gate-divider"></div>
+    <div class="gate-label">Access Code</div>
+    <input
+      type="password"
+      class="gate-inp"
+      id="passInput"
+      placeholder="Enter access code"
+      autocomplete="off"
+      onkeydown="if(event.key==='Enter')auth()"
+    >
+    <button class="gate-btn" id="gateBtn" onclick="auth()">Access Dashboard</button>
+    <div class="gate-err" id="gateErr"></div>
+    <div class="gate-foot">
+      Sekelo · Eswatini Construction Intelligence<br>
+      Price data updated biweekly across 4 SA branches
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ───────────────────────────────────────────────── -->
+<div id="app">
+  <header class="header">
+    <a href="/" class="logo-wrap">
+      <div class="logo">Sekelo</div>
+      <div class="logo-rule"></div>
+      <div class="logo-sub">Construction Price Intelligence</div>
+    </a>
+    <div class="hdr-right">
+      <a href="boq.html" class="nav-link">BoQ Calculator</a>
+      <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀</button>
+      <button class="export-btn" onclick="exportPDF()">Export PDF</button>
+      <button class="export-btn" onclick="exportCSVIndex()" style="margin-left:6px">CSV</button>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="subhdr">
+    <div class="sub-l">Material Price Index — Eswatini &amp; South Africa</div>
+    <div class="sub-r">
+      <div class="sub-stat"><b id="statCats">—</b> categories</div>
+      <div class="sub-stat"><b id="statProds">—</b> products tracked</div>
+      <div class="sub-stat"><b id="statBranches">4</b> branches</div>
+      <div class="last-updated">Updated <b id="lastUpdated">—</b></div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="legend" id="branchLegend"></div>
+    <div class="toolbar" id="toolbar">
+      <input type="search" id="searchInput" class="search-inp" placeholder="Search products or units…" autocomplete="off" oninput="filterProducts()">
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+
+    <div id="loadState" class="loading">
+      <div class="ldots"><span></span><span></span><span></span></div>
+      <div class="ltext">Loading price index</div>
+    </div>
+
+    <div id="dashContent" style="display:none"></div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-text"><b>Sekelo</b> · Eswatini Construction Intelligence · 2026</div>
+    <div class="disclaimer">Prices verified biweekly against live retailer websites. SZL includes 20% border premium (transport, clearing, supplier margin). For procurement reference only — verify directly with suppliers before committing.</div>
+  </footer>
+</div>
+
+<script>
+let categories=[], products=[], priceMap={};
+
+// ── GATE (hash-aware + rate-limited; see assets/common.js) ─
+const gate = new SekeloGate({ configKey:'dashboard_password', storage:'local', onAuthed:init });
+function logout() {
+  gate.logout();
+  // Reset app state so next login reloads fresh data
+  categories = []; products = []; priceMap = {};
+  document.getElementById('dashContent').innerHTML = '';
+  document.getElementById('dashContent').style.display = 'none';
+  document.getElementById('loadState').style.display = 'block';
+}
+// ── SUPABASE ──────────────────────────────────────────────
+async function get(path){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
+  if(!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init(){
+  try{
+    [categories,products]=await Promise.all([
+      get('categories?select=*&order=display_order&active=eq.true'),
+      get('products?select=*&order=display_order&active=eq.true'),
+    ]);
+
+    const prices=await get('prices?select=product_id,branch,price_zar,price_szl,normalized_price,available,timestamp&product_id=not.is.null&order=timestamp.desc&limit=800');
+
+    prices.forEach(p=>{
+      if(!p.product_id)return;
+      if(!priceMap[p.product_id])priceMap[p.product_id]={};
+      if(!priceMap[p.product_id][p.branch]){
+        priceMap[p.product_id][p.branch]={current:p,previous:null};
+      } else if(!priceMap[p.product_id][p.branch].previous){
+        priceMap[p.product_id][p.branch].previous=p;
+      }
+    });
+
+    document.getElementById('statCats').textContent=categories.length;
+    document.getElementById('statProds').textContent=products.length;
+
+    if(prices.length){
+      const ts=new Date(prices[0].timestamp);
+      document.getElementById('lastUpdated').textContent=ts.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'});
+    }
+
+    renderLegend();
+    renderDashboard();
+    document.getElementById('toolbar').style.display='flex';
+
+    document.getElementById('loadState').style.display='none';
+    document.getElementById('dashContent').style.display='block';
+  }catch(e){
+    document.getElementById('loadState').innerHTML=`<div style="text-align:center;padding:40px 20px"><div style="color:var(--up);font-family:var(--mono);font-size:11px;margin-bottom:16px">Could not load price data: ${e.message}</div><button class="retry-btn" onclick="init()">Retry</button></div>`;
+    console.error(e);
+  }
+}
+
+function renderLegend(){
+  document.getElementById('branchLegend').innerHTML=BRANCHES.map(b=>`
+    <div class="leg-cell">
+      <div class="leg-branch">${b.label}</div>
+      <div class="leg-src">${b.source}</div>
+      <div class="leg-city">${b.city}</div>
+    </div>
+  `).join('');
+}
+
+function renderDashboard(){
+  const bycat={};
+  products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
+
+  const branchHeaders=BRANCHES.map(b=>`<th class="branch-th" style="min-width:130px">${b.label}</th>`).join('');
+
+  document.getElementById('dashContent').innerHTML=categories.map(cat=>{
+    const prods=bycat[cat.id]||[];
+    if(!prods.length)return'';
+
+    const priced=prods.filter(p=>BRANCHES.some(b=>priceMap[p.id]?.[b.key]?.current)).length;
+
+    const rows=prods.map(p=>{
+      const cells=BRANCHES.map(b=>{
+        const data=priceMap[p.id]?.[b.key];
+        if(!data?.current) return`<td class="branch-td"><span class="pc-na">—</span></td>`;
+
+        const cur=data.current;
+        const prev=data.previous;
+
+        if(cur.available===false) return`<td class="branch-td"><span class="pc-oos">Out of Stock</span></td>`;
+
+        const zar=parseFloat(cur.price_zar);
+        const szl=parseFloat(cur.price_szl)||(zar*(1+BORDER));
+
+        let wowHtml='';
+        if(prev?.price_zar){
+          const pz=parseFloat(prev.price_zar);
+          if(pz>0){
+            const pct=((zar-pz)/pz*100);
+            if(Math.abs(pct)>=0.5){
+              const cls=pct>0?'up':'down';
+              const arrow=pct>0?'↑':'↓';
+              wowHtml=`<div><span class="pc-wow ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span></div>`;
+            } else {
+              wowHtml=`<div><span class="pc-wow flat">→ flat</span></div>`;
+            }
+          }
+        }
+
+        const prod=products.find(x=>x.id===p.id);
+        let normHtml='';
+        if(prod?.normalized_divisor>1&&cur.normalized_price){
+          normHtml=`<div class="pc-norm">R ${parseFloat(cur.normalized_price).toFixed(2)}/${prod.normalized_unit}</div>`;
+        }
+
+        return`<td class="branch-td">
+          <div class="pc-zar">R ${zar.toFixed(2)}</div>
+          <div class="pc-szl">E ${szl.toFixed(2)}</div>
+          ${normHtml}
+          ${wowHtml}
+        </td>`;
+      }).join('');
+
+      return`<tr>
+        <td>
+          <div class="pname">${esc(p.product_name)}</div>
+          <div><span class="upill">${esc(p.unit)}</span></div>
+        </td>
+        ${cells}
+      </tr>`;
+    }).join('');
+
+    return`<div class="catsec" id="cat_${cat.id}">
+      <div class="cathdr" onclick="toggleCat(${cat.id})">
+        <div class="cat-l">
+          <div class="catname">${esc(cat.name)}</div>
+          <div class="catpill ${priced>0&&priced===prods.length?'full':''}">${priced}/${prods.length} priced</div>
+        </div>
+        <div class="cat-r">
+          <div class="cattog" id="ct_${cat.id}">−</div>
+        </div>
+      </div>
+      <div class="catbody" id="cb_${cat.id}">
+        <table class="ptable">
+          <thead><tr>
+            <th style="min-width:220px">Product</th>
+            ${branchHeaders}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let collapsed=new Set();
+function toggleCat(id){
+  const body=document.getElementById(`cb_${id}`);
+  const icon=document.getElementById(`ct_${id}`);
+  if(collapsed.has(id)){collapsed.delete(id);body.classList.remove('collapsed');if(icon)icon.textContent='−';}
+  else{collapsed.add(id);body.classList.add('collapsed');if(icon)icon.textContent='+';}
+}
+
+// ── THEME ─────────────────────────────────────────────────
+function getTheme(){return document.documentElement.dataset.theme||'dark';}
+function toggleTheme(){
+  const next=getTheme()==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  localStorage.setItem('sekelo_theme',next);
+  document.getElementById('themeBtn').textContent=next==='dark'?'☀':'☾';
+}
+(function(){
+  const t=localStorage.getItem('sekelo_theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{
+    const btn=document.getElementById('themeBtn');
+    if(btn)btn.textContent=t==='dark'?'☀':'☾';
+  });
+})();
+
+// ── PDF EXPORT ────────────────────────────────────────────
+function exportPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+
+  doc.setFillColor(247,244,239);doc.rect(0,0,297,210,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(26,24,20);
+  doc.text('Sekelo',14,16);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(139,105,20);
+  doc.text('CONSTRUCTION MATERIAL PRICE INDEX',14,22);
+  doc.setDrawColor(226,217,204);doc.line(14,25,283,25);
+
+  const dateStr=new Date().toLocaleDateString('en-ZA',{day:'2-digit',month:'long',year:'numeric'});
+  doc.setFontSize(8);doc.setTextColor(107,94,78);
+  doc.text(`Generated: ${dateStr}  ·  SZL includes 20% border premium  ·  For procurement reference only`,14,30);
+
+  let y=35;
+  const bycat={};
+  products.forEach(p=>{if(!bycat[p.category_id])bycat[p.category_id]=[];bycat[p.category_id].push(p);});
+
+  categories.forEach(cat=>{
+    const prods=bycat[cat.id]||[];
+    if(!prods.length)return;
+
+    const hasData=prods.some(p=>BRANCHES.some(b=>priceMap[p.id]?.[b.key]?.current));
+    if(!hasData)return;
+
+    if(y>170){doc.addPage();y=20;}
+
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(139,105,20);
+    doc.text(cat.name.toUpperCase(),14,y);
+    y+=3;
+
+    const head=[['Product','Unit',...BRANCHES.map(b=>`${b.label} ZAR`),'']];
+    const body=prods.map(p=>{
+      const row=[p.product_name,p.unit];
+      BRANCHES.forEach(b=>{
+        const d=priceMap[p.id]?.[b.key];
+        if(!d?.current){row.push('—');}
+        else if(d.current.available===false){row.push('Out of Stock');}
+        else{row.push(`R ${parseFloat(d.current.price_zar).toFixed(2)}`);}
+      });
+      row.push('');
+      return row;
+    });
+
+    doc.autoTable({
+      startY:y,head,body,theme:'grid',
+      headStyles:{fillColor:[26,24,20],textColor:[200,165,90],fontSize:7,fontStyle:'bold'},
+      bodyStyles:{fillColor:[247,244,239],textColor:[26,24,20],fontSize:7},
+      alternateRowStyles:{fillColor:[242,238,232]},
+      margin:{left:14,right:14},
+      tableWidth:'auto',
+      columnStyles:{0:{cellWidth:55},1:{cellWidth:20}},
+    });
+    y=doc.lastAutoTable.finalY+6;
+  });
+
+  const ph=doc.internal.pageSize.height;
+  doc.setFontSize(6);doc.setTextColor(200,186,168);
+  doc.text('Sekelo · Eswatini Construction Intelligence · Prices verified biweekly',14,ph-6);
+  doc.save(`Sekelo_Price_Index_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+// ── SEARCH / FILTER ───────────────────────────────────────
+function filterProducts(){
+  const q=(document.getElementById('searchInput').value||'').trim().toLowerCase();
+  let shown=0,total=0;
+  document.querySelectorAll('#dashContent .catsec').forEach(sec=>{
+    const body=sec.querySelector('.catbody'); let any=false;
+    sec.querySelectorAll('tbody tr').forEach(tr=>{
+      total++;
+      const name=(tr.querySelector('.pname')?.textContent||'').toLowerCase();
+      const unit=(tr.querySelector('.upill')?.textContent||'').toLowerCase();
+      const hit=!q||name.includes(q)||unit.includes(q);
+      tr.style.display=hit?'':'none';
+      if(hit){any=true;shown++;}
+    });
+    sec.style.display=any?'':'none';
+    if(any&&body) body.classList.remove('collapsed');
+  });
+  const fc=document.getElementById('filterCount');
+  fc.textContent=q?`${shown} of ${total} products`:'';
+}
+// ── CSV EXPORT ────────────────────────────────────────────
+function exportCSVIndex(){
+  if(!products.length){ toast('No data to export','err'); return; }
+  const byCat={};
+  products.forEach(p=>{ (byCat[p.category_id]=byCat[p.category_id]||[]).push(p); });
+  const head=['Category','Product','Unit'];
+  BRANCHES.forEach(b=>{ head.push(b.label+' ZAR', b.label+' SZL', b.label+' norm/kg'); });
+  const rows=[head];
+  categories.forEach(cat=>{
+    (byCat[cat.id]||[]).forEach(p=>{
+      const row=[cat.name, p.product_name, p.unit||''];
+      BRANCHES.forEach(b=>{
+        const cur=priceMap[p.id]&&priceMap[p.id][b.key]?priceMap[p.id][b.key].current:null;
+        row.push(cur&&cur.price_zar!=null?cur.price_zar:'',
+                 cur&&cur.price_szl!=null?cur.price_szl:'',
+                 cur&&cur.normalized_price!=null?cur.normalized_price:'');
+      });
+      rows.push(row);
+    });
+  });
+  exportCSV('sekelo-price-index-'+new Date().toISOString().slice(0,10)+'.csv', rows);
+  toast('Price index exported as CSV','ok');
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
