@@ -229,7 +229,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
     <div class="gate-logo">Sekelo</div>
     <div class="gate-sub">Price Administration</div>
     <input type="password" class="gate-inp" id="passInput" placeholder="Password" autocomplete="new-password" onkeydown="if(event.key==='Enter')auth()">
-    <button class="gate-btn" onclick="auth()">Enter</button>
+    <button class="gate-btn" id="gateBtn" onclick="auth()">Enter</button>
     <div class="gate-err" id="gateErr"></div>
   </div>
 </div>
