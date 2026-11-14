@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
 <style>
 :root{
   --bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;--border:#1E2C3C;--border-2:#253545;
@@ -208,6 +210,7 @@ input[type="text"]:focus,input[type="date"]:focus{border-color:var(--accent);}
     <button class="btn-primary" onclick="calculate()">Compare All Locations</button>
     <button class="btn-clear" onclick="clearAll()">Clear Quantities</button>
     <button class="btn-export" id="exportBtn" onclick="exportPDF()">Export PDF</button>
+    <button class="btn-export" id="csvBtn" onclick="exportCSVBoQ()" style="margin-left:8px">Export CSV</button>
   </div>
 
   <div class="results-card" id="resultsCard">
@@ -243,17 +246,6 @@ input[type="text"]:focus,input[type="date"]:focus{border-color:var(--accent);}
 </footer>
 
 <script>
-const SB_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
-const BORDER = 0.20;
-
-const BRANCHES = [
-  {key:'Southgate | Cashbuild',             label:'Southgate',       source:'Cashbuild'},
-  {key:'Nelspruit Plaza | Cashbuild',       label:'Nelspruit Plaza', source:'Cashbuild'},
-  {key:'Johannesburg | Builders Warehouse', label:'Johannesburg',    source:'Builders Warehouse'},
-  {key:'Mbombela | Builders Warehouse',     label:'Mbombela',        source:'Builders Warehouse'},
-];
-
 let categories=[], products=[], currentPrices={}, quantities={}, lastResult=null, collapsedCats=new Set();
 // currentPrices[productId][branchKey] = price_zar (or null if OOS/unavailable)
 
@@ -503,6 +495,7 @@ function calculate(){
   const rc=document.getElementById('resultsCard');
   rc.classList.add('show');
   document.getElementById('exportBtn').style.display='inline-block';
+  document.getElementById('csvBtn').style.display='inline-block';
   rc.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -514,6 +507,7 @@ function clearAll(){
   });
   document.getElementById('resultsCard').classList.remove('show');
   document.getElementById('exportBtn').style.display='none';
+  document.getElementById('csvBtn').style.display='none';
   document.getElementById('projectName').value='';
   document.getElementById('clientName').value='';
   lastResult=null;
@@ -604,6 +598,23 @@ function toggleTheme(){
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 init();
+// ── CSV EXPORT (reads rendered breakdown table) ──────────
+function exportCSVBoQ(){
+  const t=document.getElementById('breakdownTable');
+  if(!t||!t.rows.length){ toast('Run a comparison first','err'); return; }
+  const rows=[];
+  const meta=[['Project',document.getElementById('projectName').value||''],
+              ['Client',document.getElementById('clientName').value||''],
+              ['Estimate date',document.getElementById('estimateDate').value||''],
+              ['Border premium','20%']];
+  meta.forEach(r=>rows.push(r));
+  rows.push([]);
+  for(const tr of t.rows){
+    rows.push([...tr.cells].map(td=>(td.innerText||'').trim().replace(/\s+/g,' ')));
+  }
+  exportCSV('sekelo-boq-'+new Date().toISOString().slice(0,10)+'.csv', rows);
+  toast('Bill of Quantities exported as CSV','ok');
+}
 </script>
 </body>
 </html>

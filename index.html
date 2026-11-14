@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
 <style>
 :root{
   --bg:#0C1018;--surface:#131A24;--surface-2:#1A2330;--border:#1E2C3C;--border-2:#253545;
@@ -165,6 +167,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
 .pc-oos{font-family:var(--sans);font-size:9px;color:var(--text-3);font-style:italic;}
 
 /* LOADING */
+/* ── TOOLBAR / SEARCH / RETRY ───────────────────────────── */
+.toolbar{display:none;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.search-inp{flex:1;min-width:200px;max-width:420px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;padding:9px 14px;outline:none;transition:border .2s;}
+.search-inp:focus{border-color:var(--accent);}
+.search-inp::placeholder{color:var(--text-3);}
+.filter-count{font-family:var(--mono);font-size:9px;color:var(--text-3);}
+.retry-btn{background:none;border:1px solid var(--accent);color:var(--accent);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:10px 22px;cursor:pointer;transition:all .2s;}
+.retry-btn:hover{background:var(--accent);color:var(--surface);}
 .loading{padding:80px;text-align:center;}
 .ldots{display:inline-flex;gap:5px;margin-bottom:12px;}
 .ldots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite;}
@@ -184,7 +194,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
 @media(max-width:768px){
   .header,.subhdr,.main,.footer{padding-left:16px;padding-right:16px;}
   .logo-sub,.nav-link{display:none;}
-  .legend{display:none;}
+  .legend{overflow-x:auto;flex-wrap:nowrap;}
+  .leg-cell{min-width:130px;flex:0 0 auto;}
   .sub-r{gap:8px;}
 }
 </style>
@@ -229,6 +240,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
       <a href="boq.html" class="nav-link">BoQ Calculator</a>
       <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀</button>
       <button class="export-btn" onclick="exportPDF()">Export PDF</button>
+      <button class="export-btn" onclick="exportCSVIndex()" style="margin-left:6px">CSV</button>
       <button class="logout-btn" onclick="logout()">Sign Out</button>
     </div>
   </header>
@@ -245,6 +257,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
 
   <main class="main">
     <div class="legend" id="branchLegend"></div>
+    <div class="toolbar" id="toolbar">
+      <input type="search" id="searchInput" class="search-inp" placeholder="Search products or units…" autocomplete="off" oninput="filterProducts()">
+      <span class="filter-count" id="filterCount"></span>
+    </div>
 
     <div id="loadState" class="loading">
       <div class="ldots"><span></span><span></span><span></span></div>
@@ -261,93 +277,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
 </div>
 
 <script>
-const SB_URL = 'https://glvpdeneagsqwxzrtaln.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
-const BORDER = 0.20;
-
-const BRANCHES = [
-  {key:'Southgate | Cashbuild',             label:'Southgate',       source:'Cashbuild',         city:'Johannesburg'},
-  {key:'Nelspruit Plaza | Cashbuild',       label:'Nelspruit Plaza', source:'Cashbuild',         city:'Nelspruit'},
-  {key:'Johannesburg | Builders Warehouse', label:'Johannesburg',    source:'Builders Warehouse',city:'Johannesburg'},
-  {key:'Mbombela | Builders Warehouse',     label:'Mbombela',        source:'Builders Warehouse',city:'Mbombela'},
-];
-
 let categories=[], products=[], priceMap={};
 
-// ── GATE ──────────────────────────────────────────────────
-let _gatePass = null;
-
-async function fetchPass() {
-  try {
-    const r = await fetch(
-      `${SB_URL}/rest/v1/app_config?key=eq.dashboard_password&select=value`,
-      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-    );
-    const data = await r.json();
-    if (data && data.length) _gatePass = data[0].value;
-  } catch(e) {
-    console.warn('Could not load config:', e);
-  }
-}
-
-async function auth() {
-  const btn = document.getElementById('gateBtn');
-  const err = document.getElementById('gateErr');
-  const val = document.getElementById('passInput').value.trim();
-
-  if (!val) return;
-
-  // Fetch password if we don't have it yet
-  if (!_gatePass) {
-    btn.disabled = true;
-    btn.textContent = 'Checking…';
-    await fetchPass();
-    btn.disabled = false;
-    btn.textContent = 'Access Dashboard';
-  }
-
-  if (!_gatePass) {
-    err.textContent = 'Configuration error — please try again.';
-    return;
-  }
-
-  if (val === _gatePass) {
-    localStorage.setItem('sekelo_auth', '1');
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    init();
-  } else {
-    err.textContent = 'Incorrect access code.';
-    document.getElementById('passInput').value = '';
-    document.getElementById('passInput').focus();
-  }
-}
-
+// ── GATE (hash-aware + rate-limited; see assets/common.js) ─
+const gate = new SekeloGate({ configKey:'dashboard_password', storage:'local', onAuthed:init });
 function logout() {
-  localStorage.removeItem('sekelo_auth');
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('gate').style.display = 'flex';
-  document.getElementById('passInput').value = '';
-  document.getElementById('gateErr').textContent = '';
+  gate.logout();
   // Reset app state so next login reloads fresh data
   categories = []; products = []; priceMap = {};
   document.getElementById('dashContent').innerHTML = '';
   document.getElementById('dashContent').style.display = 'none';
   document.getElementById('loadState').style.display = 'block';
 }
-
-// Check existing session on load
-(async function() {
-  if (localStorage.getItem('sekelo_auth') === '1') {
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    init();
-  } else {
-    // Pre-fetch the password in the background while user looks at the gate
-    fetchPass();
-  }
-})();
-
 // ── SUPABASE ──────────────────────────────────────────────
 async function get(path){
   const r=await fetch(`${SB_URL}/rest/v1/${path}`,{headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`}});
@@ -385,11 +326,12 @@ async function init(){
 
     renderLegend();
     renderDashboard();
+    document.getElementById('toolbar').style.display='flex';
 
     document.getElementById('loadState').style.display='none';
     document.getElementById('dashContent').style.display='block';
   }catch(e){
-    document.getElementById('loadState').innerHTML=`<div style="color:var(--up);font-family:var(--mono);font-size:11px">Error loading data: ${e.message}</div>`;
+    document.getElementById('loadState').innerHTML=`<div style="text-align:center;padding:40px 20px"><div style="color:var(--up);font-family:var(--mono);font-size:11px;margin-bottom:16px">Could not load price data: ${e.message}</div><button class="retry-btn" onclick="init()">Retry</button></div>`;
     console.error(e);
   }
 }
@@ -579,6 +521,49 @@ function exportPDF(){
   doc.save(`Sekelo_Price_Index_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
+// ── SEARCH / FILTER ───────────────────────────────────────
+function filterProducts(){
+  const q=(document.getElementById('searchInput').value||'').trim().toLowerCase();
+  let shown=0,total=0;
+  document.querySelectorAll('#dashContent .catsec').forEach(sec=>{
+    const body=sec.querySelector('.catbody'); let any=false;
+    sec.querySelectorAll('tbody tr').forEach(tr=>{
+      total++;
+      const name=(tr.querySelector('.pname')?.textContent||'').toLowerCase();
+      const unit=(tr.querySelector('.upill')?.textContent||'').toLowerCase();
+      const hit=!q||name.includes(q)||unit.includes(q);
+      tr.style.display=hit?'':'none';
+      if(hit){any=true;shown++;}
+    });
+    sec.style.display=any?'':'none';
+    if(any&&body) body.classList.remove('collapsed');
+  });
+  const fc=document.getElementById('filterCount');
+  fc.textContent=q?`${shown} of ${total} products`:'';
+}
+// ── CSV EXPORT ────────────────────────────────────────────
+function exportCSVIndex(){
+  if(!products.length){ toast('No data to export','err'); return; }
+  const byCat={};
+  products.forEach(p=>{ (byCat[p.category_id]=byCat[p.category_id]||[]).push(p); });
+  const head=['Category','Product','Unit'];
+  BRANCHES.forEach(b=>{ head.push(b.label+' ZAR', b.label+' SZL', b.label+' norm/kg'); });
+  const rows=[head];
+  categories.forEach(cat=>{
+    (byCat[cat.id]||[]).forEach(p=>{
+      const row=[cat.name, p.product_name, p.unit||''];
+      BRANCHES.forEach(b=>{
+        const cur=priceMap[p.id]&&priceMap[p.id][b.key]?priceMap[p.id][b.key].current:null;
+        row.push(cur&&cur.price_zar!=null?cur.price_zar:'',
+                 cur&&cur.price_szl!=null?cur.price_szl:'',
+                 cur&&cur.normalized_price!=null?cur.normalized_price:'');
+      });
+      rows.push(row);
+    });
+  });
+  exportCSV('sekelo-price-index-'+new Date().toISOString().slice(0,10)+'.csv', rows);
+  toast('Price index exported as CSV','ok');
+}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>
 </body>

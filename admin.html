@@ -217,6 +217,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
   .ninp{display:none;}.pinp{width:100px;}
 }
 </style>
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
 </head>
 <body>
 
@@ -308,18 +310,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
 <div class="toast" id="toast"></div>
 
 <script>
-const SB_URL='https://glvpdeneagsqwxzrtaln.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdnBkZW5lYWdzcXd4enJ0YWxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzODQ4NDQsImV4cCI6MjA4Nzk2MDg0NH0.y5gJY1XRFj5uGYUjnkZ9rPfLQRdub5uKBn8jIxEpdP8';
-const PASS='sekelo2026';
-const BORDER=0.20;
-const FLAG_THRESHOLD=5; // % change that triggers a flag
-
-const BRANCHES=[
-  {key:'Southgate | Cashbuild',             city:'Joburg',    label:'Southgate',       source:'Cashbuild'},
-  {key:'Nelspruit Plaza | Cashbuild',       city:'Nelspruit', label:'Nelspruit Plaza', source:'Cashbuild'},
-  {key:'Johannesburg | Builders Warehouse', city:'Joburg',    label:'Johannesburg',    source:'Builders Warehouse'},
-  {key:'Mbombela | Builders Warehouse',     city:'Mbombela',  label:'Mbombela',        source:'Builders Warehouse'},
-];
 
 let categories=[],products=[],lastPrices={},entries={};
 BRANCHES.forEach(b=>entries[b.key]={});
@@ -332,29 +322,16 @@ let modalIds=[];
 let selectedOpt='mon5';
 
 // ── AUTH ──────────────────────────────────────────────────
-function auth(){
-  const v=document.getElementById('passInput').value;
-  if(v===PASS){
-    document.getElementById('gate').style.display='none';
-    document.getElementById('app').style.display='block';
+const gate = new SekeloGate({
+  configKey:'admin_password',
+  storage:'session',
+  fallbackHash:'2e6887f4ec8d82083f9e6cc9bc6002a927cf700805b5d9aebe3fef708a694f0f',
+  onAuthed:function(){
     document.getElementById('sessionDate').textContent=
       new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-    sessionStorage.setItem('sekelo_auth','1');
     init();
-  }else{
-    document.getElementById('gateErr').textContent='Incorrect password.';
-    document.getElementById('passInput').value='';
-    document.getElementById('passInput').focus();
   }
-}
-// Auto-login if session active
-if(sessionStorage.getItem('sekelo_auth')==='1'){
-  document.getElementById('gate').style.display='none';
-  document.getElementById('app').style.display='block';
-  document.getElementById('sessionDate').textContent=
-    new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  document.addEventListener('DOMContentLoaded',init);
-}
+});
 
 // ── SUPABASE ──────────────────────────────────────────────
 async function sbGet(path){
