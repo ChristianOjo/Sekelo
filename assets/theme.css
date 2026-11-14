@@ -1,0 +1,79 @@
+/* Sekelo — Bloomberg-terminal theme override.
+ * Loaded AFTER each page's inline <style>, so equal-specificity rules here win.
+ * Remove the <link> tag in any page to revert to the original gold-on-navy look.
+ */
+:root{
+  --bg:#0A0E14;
+  --surface:#10161F;
+  --surface-2:#151C27;
+  --border:#1E2A38;
+  --border-2:#283648;
+  --accent:#F5A623;
+  --accent-bg:rgba(245,166,35,0.10);
+  --text:#EDE6D6;
+  --text-2:#9A9080;
+  --text-3:#6B6152;
+  --text-4:#3F382E;
+}
+[data-theme="light"]{
+  --bg:#F4F1EA;
+  --surface:#FFFFFF;
+  --surface-2:#EFEAE0;
+  --border:#DCD2C2;
+  --border-2:#C8BBA6;
+  --accent:#B87A0E;
+  --accent-bg:rgba(184,122,14,0.08);
+  --text:#16130E;
+  --text-2:#6B5E4E;
+  --text-3:#9A8B74;
+  --text-4:#C4B8A4;
+}
+
+/* ── Density (terminal-tight) ───────────────────────────── */
+.main{padding:16px 28px 40px;}
+.catsec{margin-bottom:8px;}
+.ptable th{padding:6px 14px;}
+.ptable td{padding:8px 14px;}
+.itable th{padding:6px 14px;}
+.itable td{padding:7px 14px;}
+.rtable th{padding:6px 14px;}
+.rtable td{padding:8px 14px;}
+.subhdr{padding:6px 28px;}
+.header{height:52px;padding:0 28px;}
+.footer{padding:16px 28px;}
+
+/* ── Amber primary actions ──────────────────────────────── */
+.btn-primary{background:var(--accent);color:#0A0E14;font-weight:600;}
+.btn-primary:hover{opacity:.85;}
+.export-btn:hover,.sbtn-outline:hover,.ba-sched:hover,.ra-sched:hover{background:var(--accent);color:#0A0E14;}
+.retry-btn:hover{background:var(--accent);color:#0A0E14;}
+
+/* ── Inputs: hairline + amber focus ─────────────────────── */
+.pinp,.qty-inp,.search-inp,.gate-inp,.ninp,input[type="text"],input[type="date"]{
+  border-color:var(--border-2);
+}
+.pinp:focus,.qty-inp:focus,.search-inp:focus,.gate-inp:focus,input[type="text"]:focus,input[type="date"]:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px var(--accent-bg);
+}
+
+/* ── Tabular numerals everywhere money appears ──────────── */
+.pc-zar,.pc-szl,.pc-norm,.ndisp,.loc-total,.loc-szl,.sub-stat b,.last-updated b,
+.sinfo b,.btable td.mono,.btable td.best,.rtable td.mono{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-0.01em;
+}
+
+/* ── Terminal touches ───────────────────────────────────── */
+.catname{letter-spacing:1.8px;}
+.main-tab.active,.btab.active,.nav-link.active{border-bottom-color:var(--accent);}
+.legend{gap:1px;background:var(--border);}
+.leg-cell{background:var(--surface);}
+/* subtle scanline-free flat: keep, but sharpen divider contrast */
+.ptable tbody tr{border-bottom-color:var(--border);}
+.ptable tbody tr:hover{background:var(--surface-2);}
+
+/* mobile */
+@media(max-width:768px){
+  .header,.subhdr,.main,.footer,.sbar{padding-left:16px;padding-right:16px;}
+}
