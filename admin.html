@@ -220,6 +220,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
 <link rel="stylesheet" href="assets/theme.css">
 <script src="assets/config.js"></script>
 <script src="assets/common.js"></script>
+<script src="assets/csv-import.js"></script>
 </head>
 <body>
 
@@ -283,6 +284,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
       Review Queue
       <span class="tab-badge" id="pendingBadge" style="display:none">0</span>
     </div>
+    <div class="main-tab" id="tab-import" onclick="switchTab('import')">Import</div>
   </div>
 
   <div class="btabs" id="branchTabs" style="display:flex"></div>
@@ -294,6 +296,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:
     </div>
     <div id="entryPanel" style="display:none"><div id="formContent"></div></div>
     <div id="reviewPanel" style="display:none"><div id="reviewContent"></div></div>
+    <div id="importPanel" style="display:none"><div id="importContent"></div></div>
   </main>
 </div>
 
@@ -397,15 +400,17 @@ async function refreshBadge(){
 // ── TAB SWITCHING ─────────────────────────────────────────
 function switchTab(tab){
   activeTab=tab;
-  document.getElementById('tab-entry').classList.toggle('active',tab==='entry');
-  document.getElementById('tab-review').classList.toggle('active',tab==='review');
-  document.getElementById('entryPanel').style.display=tab==='entry'?'block':'none';
-  document.getElementById('reviewPanel').style.display=tab==='review'?'block':'none';
+  ['entry','review','import'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',tab===t);
+    document.getElementById(t+'Panel').style.display=tab===t?'block':'none';
+  });
   document.getElementById('branchTabs').style.display=tab==='entry'?'flex':'none';
   document.getElementById('sbar').style.display=tab==='entry'?'flex':'none';
   document.getElementById('contextLabel').textContent=
-    tab==='entry'?`Price Entry — ${BRANCHES.find(b=>b.key===activeBranch)?.label}`:'Review Queue';
+    tab==='entry'?`Price Entry — ${BRANCHES.find(b=>b.key===activeBranch)?.label}`
+    :tab==='import'?'CSV Import':'Review Queue';
   if(tab==='review')renderReview();
+  if(tab==='import')CsvImport.render();
 }
 
 // ── BRANCH TABS ───────────────────────────────────────────
