@@ -90,6 +90,8 @@
     return BRANCHES.find(b => b.key.toLowerCase() === v || b.label.toLowerCase() === v);
   }
 
+  const normName = v => String(v).toLowerCase().replace(/[×]/g, 'x').replace(/[^a-z0-9.]+/g, ' ').trim();
+
   function findProduct(idRaw, nameRaw) {
     if (idRaw != null && String(idRaw).trim() !== '') {
       const id = parseInt(idRaw, 10);
@@ -97,8 +99,15 @@
       if (p) return p;
     }
     if (nameRaw != null && String(nameRaw).trim() !== '') {
-      const n = String(nameRaw).trim().toLowerCase();
-      return products.find(x => x.product_name.trim().toLowerCase() === n);
+      const n = normName(nameRaw);
+      const exact = products.find(x => normName(x.product_name) === n);
+      if (exact) return exact;
+      // unique partial match either way (e.g. "Cement 32.5R" vs "Cement 32.5R 50kg")
+      const partial = products.filter(x => {
+        const pn = normName(x.product_name);
+        return pn.includes(n) || n.includes(pn);
+      });
+      if (partial.length === 1) return partial[0];
     }
     return null;
   }
@@ -115,7 +124,13 @@
     const items = rows.slice(1).map((r, i) => {
       const get = k => (map[k] === undefined ? null : r[map[k]]);
       const item = { line: i + 2, status: 'ok', msg: '' };
-      const branch = findBranch(get('branch'), fallbackKey);
+      let branch = findBranch(get('branch'), fallbackKey);
+      const rawBranch = get('branch');
+      if (!branch && rawBranch != null && String(rawBranch).trim()) {
+        branch = BRANCHES.find(b => b.key === fallbackKey);
+        item.msg = `Branch “${String(rawBranch).trim()}” unknown, using default`;
+        item.warn = true;
+      }
       const prod = findProduct(get('product_id'), get('product'));
       const available = parseAvailable(get('available'));
       const price = parsePrice(get('price'));
@@ -124,7 +139,7 @@
       item.branch = branch; item.prod = prod; item.available = available;
       item.price = price; item.notes = (get('notes') || '').toString().trim();
 
-      if (!branch) { item.status = 'error'; item.msg = `Unknown branch “${get('branch')}”`; }
+      if (!branch) { item.status = 'error'; item.msg = 'No branch'; }
       else if (!prod) { item.status = 'error'; item.msg = 'Product not found'; }
       else if (available && (isNaN(price) || price <= 0)) { item.status = 'error'; item.msg = 'Missing or invalid price'; }
       else {
@@ -287,6 +302,10 @@
     const dupe = parsed.filter(r => r.status === 'dupe').length;
     const threshold = typeof FLAG_THRESHOLD !== 'undefined' ? FLAG_THRESHOLD : 15;
 
+    const reasons = {};
+    parsed.filter(r => r.status === 'error').forEach(r => { reasons[r.msg] = (reasons[r.msg] || 0) + 1; });
+    const reasonTxt = Object.entries(reasons).map(([m, n]) => `${n}× ${esc(m)}`).join(' · ');
+
     const body = parsed.map(r => {
       const lp = r.prod && r.branch ? lastPrices[r.prod.id]?.[r.branch.key] : null;
       let change = '<span class="diff new">New</span>';
@@ -302,7 +321,7 @@
         }
       }
       const state = r.status === 'ok'
-        ? '<span class="csv-ok">Ready</span>'
+        ? (r.warn ? `<span class="csv-warn">${esc(r.msg)}</span>` : '<span class="csv-ok">Ready</span>')
         : r.status === 'dupe'
           ? `<span class="csv-warn">${esc(r.msg)}</span>`
           : `<span class="csv-err">${esc(r.msg)}</span>`;
@@ -324,6 +343,7 @@
         <div class="csv-sum">
           <b>${parsed.length}</b> rows · <b class="csv-ok">${ok}</b> ready
           ${err ? ` · <b class="csv-err">${err}</b> with errors (skipped)` : ''}
+          ${reasonTxt ? `<div class="csv-err" style="margin-top:6px">${reasonTxt}</div>` : ''}
           ${dupe ? ` · <b class="csv-warn">${dupe}</b> duplicates (last row wins)` : ''}
         </div>
         <div class="csv-scroll">
